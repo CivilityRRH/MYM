@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all unmatched documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Job Requirements collection
+    match /job_requirements/{jobId} {
+      allow read, write: if true;
+    }
+
+    // Candidate Profiles collection
+    match /candidates/{candidateId} {
+      allow read, write: if true;
+    }
+
+    // Google Forms collection
+    match /google_forms/{formRecordId} {
+      allow read, write: if true;
+    }
+
+    // Google Tasks collection
+    match /google_tasks/{taskRecordId} {
+      allow read, write: if true;
+    }
+
+    // Training Sessions collection
+    match /training_sessions/{sessionId} {
+      allow read, write: if true;
+    }
+
+    // Crisis Scenarios collection
+    match /crisis_scenarios/{scenarioId} {
+      allow read, write: if true;
+    }
+
+    // LinkedIn Scouts Auth collection
+    match /linkedin_scouts/{scoutId} {
+      allow read, write: if true;
+    }
+
+    // LinkedIn Scout Queries collection
+    match /linkedin_scout_queries/{queryId} {
+      allow read, write: if true;
+    }
+  }
+}
+

@@ -1,0 +1,11 @@
+{
+  "name": "Mind Your Manners",
+  "description": "Autonomous AI candidate screening \u0026 candidate database platform featuring zero-manpower audio/video tone and high-pressure testing, custom ethics criteria, radius searching, and candidate scoring.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

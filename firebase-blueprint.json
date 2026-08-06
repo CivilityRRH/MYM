@@ -1,0 +1,130 @@
+{
+  "entities": {
+    "JobRequirement": {
+      "title": "Job Requirement",
+      "description": "Screening criteria and custom questions for candidate positions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "roleName": { "type": "string" },
+        "ageRange": { "type": "string" },
+        "minExperienceYears": { "type": "number" },
+        "uniqueExceptionsCriteria": { "type": "string" },
+        "radiusMiles": { "type": "number" },
+        "offerRelocationCost": { "type": "boolean" },
+        "relocationBudgetAmount": { "type": "number" },
+        "locationCity": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "roleName", "status"]
+    },
+    "CandidateProfile": {
+      "title": "Candidate Profile",
+      "description": "Candidate applicant record with submission and evaluation data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "locationCity": { "type": "string" },
+        "age": { "type": "number" },
+        "experienceYears": { "type": "number" },
+        "currentCompany": { "type": "string" },
+        "currentRole": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "fullName", "email", "status"]
+    },
+    "GoogleFormItem": {
+      "title": "Google Form Item",
+      "description": "Synced Google Form associated with screening requirements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "formId": { "type": "string" },
+        "title": { "type": "string" },
+        "responderUri": { "type": "string" },
+        "jobId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "formId", "title"]
+    },
+    "GoogleTaskItem": {
+      "title": "Google Task Item",
+      "description": "Synced Google Task item for hiring workflow",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "taskId": { "type": "string" },
+        "title": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "taskId", "title"]
+    },
+    "LinkedInAuthAccount": {
+      "title": "LinkedIn Auth Account",
+      "description": "Connected LinkedIn Recruiter OAuth Account credentials and sync status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "connected": { "type": "boolean" },
+        "linkedInName": { "type": "string" },
+        "linkedInEmail": { "type": "string" },
+        "linkedInHeadline": { "type": "string" },
+        "linkedInProfileUrl": { "type": "string" },
+        "recruiterSeatActive": { "type": "boolean" },
+        "openToWorkNetworkEnabled": { "type": "boolean" },
+        "connectedAt": { "type": "string" }
+      },
+      "required": ["connected", "linkedInName"]
+    },
+    "LinkedInScoutQuery": {
+      "title": "LinkedIn Scout Query",
+      "description": "Saved LinkedIn candidate scout search query log in Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "roleQuery": { "type": "string" },
+        "locationQuery": { "type": "string" },
+        "filterMode": { "type": "string" },
+        "linkedInVerifiedOnly": { "type": "boolean" },
+        "resultsCount": { "type": "number" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "roleQuery"]
+    }
+  },
+  "firestore": {
+    "/job_requirements/{jobId}": {
+      "schema": { "$ref": "#/entities/JobRequirement" },
+      "description": "Collection of active and archived job requirements"
+    },
+    "/candidates/{candidateId}": {
+      "schema": { "$ref": "#/entities/CandidateProfile" },
+      "description": "Collection of candidate profiles and evaluations"
+    },
+    "/google_forms/{formRecordId}": {
+      "schema": { "$ref": "#/entities/GoogleFormItem" },
+      "description": "Collection of Google Forms created for positions"
+    },
+    "/google_tasks/{taskRecordId}": {
+      "schema": { "$ref": "#/entities/GoogleTaskItem" },
+      "description": "Collection of Google Tasks created for recruiting follow-ups"
+    },
+    "/linkedin_scouts/{scoutId}": {
+      "schema": { "$ref": "#/entities/LinkedInAuthAccount" },
+      "description": "Collection of connected LinkedIn Recruiter Auth accounts"
+    },
+    "/linkedin_scout_queries/{queryId}": {
+      "schema": { "$ref": "#/entities/LinkedInScoutQuery" },
+      "description": "Collection of recorded LinkedIn scout searches in Firebase"
+    }
+  }
+}
