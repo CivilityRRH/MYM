@@ -1,38 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { UserRole, AuthUser, JobRequirement, CandidateProfile, TalentRadarSignal, CandidateSubmission, CandidateEvaluation, TrainingSessionRecord, CrisisScenarioRecord } from './types';
-import { INITIAL_JOB_REQUIREMENTS, INITIAL_CANDIDATES, INITIAL_TALENT_RADAR_SIGNALS } from './data/initialData';
+import { UserRole, AuthUser, JobRequirement, CandidateProfile, TalentRadarSignal, CandidateSubmission, CandidateEvaluation, TrainingSessionRecord, CrisisScenarioRecord, EmployeeJourneyRecord } from './types';
+import { INITIAL_JOB_REQUIREMENTS, INITIAL_CANDIDATES, INITIAL_TALENT_RADAR_SIGNALS, INITIAL_EMPLOYEE_JOURNEYS } from './data/initialData';
 import {
   subscribeToJobRequirements,
   subscribeToCandidateProfiles,
   subscribeToTrainingSessions,
   subscribeToCrisisScenarios,
+  subscribeToEmployeeJourneys,
   saveJobRequirementToFirestore,
   saveCandidateProfileToFirestore,
   updateCandidateStatusInFirestore,
   deleteCandidateFromFirestore,
   saveTrainingSessionToFirestore,
-  saveCrisisScenarioToFirestore
+  saveCrisisScenarioToFirestore,
+  saveEmployeeJourneyToFirestore
 } from './services/firestoreService';
 import { Navbar } from './components/Navbar';
+import { LandingPage } from './components/LandingPage';
 import { EmployerDashboard } from './components/EmployerDashboard';
 import { CandidatePortal } from './components/CandidatePortal';
 import { AuthModal } from './components/AuthModal';
+import { GatekeeperScreen } from './components/GatekeeperScreen';
 import { PricingCalculator } from './components/PricingCalculator';
 import { PrivateOwnerChat } from './components/PrivateOwnerChat';
 import { AudioVoiceBanner } from './components/AudioVoiceBanner';
-import { Building2, UserCheck, Eye, Sparkles, Shield, ArrowRight } from 'lucide-react';
+import { Building2, UserCheck, Eye, Sparkles, Shield, ArrowRight, LogOut, Home, Compass, Layers } from 'lucide-react';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<AuthUser>({
-    email: 'universal@civility.com',
-    role: 'universal',
-    name: 'Universal Admin',
-    organization: 'Civility Dual Access HQ',
-    plan: 'Growth',
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    const saved = localStorage.getItem('mind_your_manners_auth_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   });
 
   const [activeRole, setActiveRole] = useState<UserRole>('business');
-  const [currentView, setCurrentView] = useState<'portal' | 'pricing'>('portal');
+  const [currentView, setCurrentView] = useState<'landing' | 'portal' | 'pricing'>('portal');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [jobRequirements, setJobRequirements] = useState<JobRequirement[]>(INITIAL_JOB_REQUIREMENTS);
@@ -40,11 +48,13 @@ export default function App() {
   const [talentRadarSignals, setTalentRadarSignals] = useState<TalentRadarSignal[]>(INITIAL_TALENT_RADAR_SIGNALS);
   const [trainingSessions, setTrainingSessions] = useState<TrainingSessionRecord[]>([]);
   const [crisisScenarios, setCrisisScenarios] = useState<CrisisScenarioRecord[]>([]);
+  const [employeeJourneys, setEmployeeJourneys] = useState<EmployeeJourneyRecord[]>(INITIAL_EMPLOYEE_JOURNEYS);
 
   // Firestore real-time synchronization listeners
   useEffect(() => {
     let initialJobsSeeded = false;
     let initialCandidatesSeeded = false;
+    let initialJourneysSeeded = false;
 
     const unsubJobs = subscribeToJobRequirements((remoteJobs) => {
       if (remoteJobs && remoteJobs.length > 0) {
@@ -57,15 +67,15 @@ export default function App() {
       }
     });
 
+    // Purge any lingering simulated pioneer profile from Firestore
+    deleteCandidateFromFirestore('cand-pioneer-ronnie-hill').catch(() => {});
+
     const unsubCandidates = subscribeToCandidateProfiles((remoteCandidates) => {
-      if (remoteCandidates && remoteCandidates.length > 0) {
-        setCandidates(remoteCandidates);
-      } else if (!initialCandidatesSeeded) {
-        initialCandidatesSeeded = true;
-        INITIAL_CANDIDATES.forEach((c) => {
-          saveCandidateProfileToFirestore(c).catch(() => {});
-        });
-      }
+      // Strictly retain real live recorded submissions, filtering out any simulated dummy profiles
+      const realOnly = (remoteCandidates || []).filter(
+        (c) => c.id !== 'cand-pioneer-ronnie-hill' && !c.id.startsWith('cand-sim-')
+      );
+      setCandidates(realOnly);
     });
 
     const unsubTraining = subscribeToTrainingSessions((remoteTraining) => {
@@ -80,13 +90,48 @@ export default function App() {
       }
     });
 
+    const unsubJourneys = subscribeToEmployeeJourneys((remoteJourneys) => {
+      if (remoteJourneys && remoteJourneys.length > 0) {
+        setEmployeeJourneys(remoteJourneys);
+      } else if (!initialJourneysSeeded) {
+        initialJourneysSeeded = true;
+        INITIAL_EMPLOYEE_JOURNEYS.forEach((ej) => {
+          saveEmployeeJourneyToFirestore(ej).catch(() => {});
+        });
+      }
+    });
+
     return () => {
       unsubJobs();
       unsubCandidates();
       unsubTraining();
       unsubCrisis();
+      unsubJourneys();
     };
   }, []);
+
+  // Auto-enforce candidate view restriction if user tries to open pricing page
+  useEffect(() => {
+    if (currentUser?.role === 'candidate' && currentView === 'pricing') {
+      setCurrentView('portal');
+    }
+  }, [currentUser?.role, currentView]);
+
+  const handleSaveEmployeeJourney = (updatedJourney: EmployeeJourneyRecord) => {
+    setEmployeeJourneys((prev) => {
+      const idx = prev.findIndex((j) => j.id === updatedJourney.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = updatedJourney;
+        return next;
+      } else {
+        return [...prev, updatedJourney];
+      }
+    });
+    saveEmployeeJourneyToFirestore(updatedJourney).catch((err) => {
+      console.warn('Could not save employee journey to Firestore:', err);
+    });
+  };
 
 
   // When user logs in, enforce their role view automatically
@@ -98,6 +143,11 @@ export default function App() {
       setActiveRole('candidate');
     }
     setCurrentView('portal');
+  };
+
+  const handleUserLogout = () => {
+    localStorage.removeItem('mind_your_manners_auth_user');
+    setCurrentUser(null);
   };
 
   // Add Job Requirement
@@ -134,13 +184,12 @@ export default function App() {
     setCandidates([]);
   };
 
-  // Load pre-populated system presets (Jobs, Applicants, Radar Signals)
+  // Load pre-populated system presets (Jobs, Radar Signals)
   const handleLoadDemoData = () => {
     setJobRequirements(INITIAL_JOB_REQUIREMENTS);
-    setCandidates(INITIAL_CANDIDATES);
+    setCandidates([]);
     setTalentRadarSignals(INITIAL_TALENT_RADAR_SIGNALS);
     INITIAL_JOB_REQUIREMENTS.forEach((j) => saveJobRequirementToFirestore(j).catch(() => {}));
-    INITIAL_CANDIDATES.forEach((c) => saveCandidateProfileToFirestore(c).catch(() => {}));
   };
 
   // Reset workspace to a clean customizable blank state for new subscribers
@@ -175,37 +224,43 @@ export default function App() {
   };
 
   // Handle Candidate Assessment Submission
-  const handleCandidateSubmitAssessment = (submission: CandidateSubmission, evaluation: CandidateEvaluation) => {
-    const newCandidate: CandidateProfile = {
+  const handleCandidateSubmitAssessment = (
+    submission: CandidateSubmission,
+    evaluation: CandidateEvaluation,
+    fullProfile?: CandidateProfile
+  ) => {
+    const newCandidate: CandidateProfile = fullProfile ? {
+      ...fullProfile,
+      submission,
+      evaluation,
+      status: evaluation.recommendationTier === 'Top Prospect' ? 'top_prospect' : 'screening',
+    } : {
       id: `cand-${Date.now()}`,
-      fullName: submission.candidateName || (currentUser.role === 'candidate' && currentUser.name !== 'Jordan Taylor (Job Seeker)' ? currentUser.name : 'Applicant Profile'),
-      email: submission.candidateEmail || (currentUser.role === 'candidate' ? currentUser.email : 'applicant@company.com'),
+      fullName: submission.candidateName || (currentUser?.role === 'candidate' && currentUser?.name !== 'Jordan Taylor (Job Seeker)' ? currentUser.name : 'Applicant Profile'),
+      email: submission.candidateEmail || (currentUser?.role === 'candidate' ? currentUser.email : 'applicant@company.com'),
       phone: '+1 (512) 771-9920',
       locationCity: submission.candidateCity || 'Austin, TX',
-      age: 31,
+      age: 30,
       experienceYears: 6,
-      skills: ['Incident Response', 'Zero Trust Architecture', 'Cloud Security', 'Python'],
-      distanceFromCompanyMiles: 18,
+      skills: ['Incident Response', 'Leadership', 'Problem Solving'],
+      distanceFromCompanyMiles: 12,
       willingToRelocate: true,
-      currentCompany: 'Apex Tech Defense',
-      currentRole: 'Senior Cybersecurity Engineer',
-      isCompetitorProspect: true,
-      competitorNotes: 'Submitted via Guest Hire At-Home Screening Chamber.',
-      matchesUniqueExceptions: true,
-      exceptionMatchReason: 'Verified 4+ years active threat defense background.',
+      currentCompany: 'Autonomous Tech Group',
+      currentRole: 'Senior Executive Specialist',
+      isCompetitorProspect: false,
       submission,
       evaluation,
       status: evaluation.recommendationTier === 'Top Prospect' ? 'top_prospect' : 'screening',
     };
 
-    setCandidates((prev) => [newCandidate, ...prev]);
+    setCandidates((prev) => [newCandidate, ...prev.filter((c) => c.id !== newCandidate.id)]);
     saveCandidateProfileToFirestore(newCandidate).catch((err) => {
       console.warn('Could not save candidate to Firestore:', err);
     });
 
     const trainingRecord: TrainingSessionRecord = {
       id: `train-${Date.now()}`,
-      companyName: currentUser.organization || 'Civility Corporate HQ',
+      companyName: currentUser?.organization || 'Civility Corporate HQ',
       scenarioTitle: 'Autonomous Candidate Assessment & Tone Test',
       scenarioType: 'tone',
       prompt: submission.toneAudioTranscript || 'Tone & Pressure Response',
@@ -240,20 +295,29 @@ export default function App() {
 
   const topProspectCount = candidates.filter((c) => c.status === 'top_prospect').length;
 
-  // Determine effective active role based on auth mode
+  // If user is not authenticated, render the flagship Landing Page with full navigation & auth
+  if (!currentUser) {
+    return <LandingPage onLogin={handleUserLogin} />;
+  }
+
+  // Determine effective active role based on auth mode:
+  // - Candidate Accounts: Restricted strictly to candidate/employee portal view.
+  // - Subscribed Corporate Accounts: All-Access Pass to BOTH Employer HQ & Employee View.
   const effectiveRole: UserRole =
-    currentUser.role === 'corporate'
-      ? 'business'
-      : currentUser.role === 'candidate'
+    currentUser?.role === 'candidate'
       ? 'candidate'
       : activeRole;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-[#F5F5F0] font-sans flex flex-col selection:bg-white selection:text-black">
-      {/* Navbar with Dual Portal Role Switcher & Auth Gateway */}
+    <div className="min-h-screen bg-black text-zinc-100 font-sans flex flex-col selection:bg-amber-400 selection:text-black">
+      {/* Navbar with Role-Based Navigation & Auth Gateway */}
       <Navbar
         activeRole={effectiveRole}
         onRoleChange={(role) => {
+          if (currentUser?.role === 'candidate' && role === 'business') {
+            alert('Candidate Accounts are limited to the Candidate / Employee Portal. To access Employer HQ features, please sign in or subscribe as a Corporate Employer.');
+            return;
+          }
           setActiveRole(role);
           setCurrentView('portal');
         }}
@@ -261,82 +325,117 @@ export default function App() {
         topProspectCount={topProspectCount}
         currentUser={currentUser}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
-        onShowPricing={() => setCurrentView('pricing')}
+        onShowPricing={() => {
+          if (currentUser?.role === 'candidate') {
+            alert('Candidate Accounts are free for job seekers. Pricing and SaaS storage plans are reserved for Corporate Subscribers.');
+            return;
+          }
+          setCurrentView('pricing');
+        }}
+        onShowLanding={() => setCurrentView('landing')}
+        currentView={currentView}
+        onLogout={handleUserLogout}
       />
 
-      {/* Role Session Lock Banner */}
-      <div className="bg-[#121212] border-b border-white/10 px-4 py-2.5 text-xs font-mono">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center space-x-3">
-            {currentUser.role === 'universal' ? (
-              <span className="inline-flex items-center gap-1.5 text-amber-300 font-bold uppercase tracking-wider">
+      {/* Role Session Lock Banner - Rounded Bubble Styling */}
+      <div className="w-full px-4 pt-3">
+        <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-3xl md:rounded-full px-5 py-2.5 text-xs font-mono shadow-2xl backdrop-blur-xl max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
+          <div className="flex items-center space-x-3 flex-wrap justify-center sm:justify-start">
+            {currentUser?.role === 'universal' ? (
+              <span className="inline-flex items-center gap-1.5 text-amber-300 font-bold uppercase tracking-wider bg-amber-400/10 px-3 py-1 rounded-full border border-amber-400/30">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Universal Account Active ({currentUser.email})</span>
+                <span>Founder Account ({currentUser.name})</span>
               </span>
-            ) : currentUser.role === 'corporate' ? (
-              <span className="inline-flex items-center gap-1.5 text-purple-300 font-bold uppercase tracking-wider">
-                <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                <span>Corporate HQ Session Active ({currentUser.organization || 'Civility Corp'})</span>
+            ) : currentUser?.role === 'corporate' ? (
+              <span className="inline-flex items-center gap-1.5 text-sky-300 font-bold uppercase tracking-wider bg-sky-500/10 px-3 py-1 rounded-full border border-sky-400/30">
+                <Building2 className="w-3.5 h-3.5 text-sky-400" />
+                <span>Corporate Subscriber ({currentUser.organization || 'Civility Corp'})</span>
               </span>
-            ) : currentUser.role === 'candidate' ? (
-              <span className="inline-flex items-center gap-1.5 text-emerald-300 font-bold uppercase tracking-wider">
+            ) : currentUser?.role === 'candidate' ? (
+              <span className="inline-flex items-center gap-1.5 text-emerald-300 font-bold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-400/30">
                 <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Employee / Candidate Session Active ({currentUser.email})</span>
+                <span>Candidate Session ({currentUser.email})</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 text-blue-300 font-bold uppercase tracking-wider">
-                <Eye className="w-3.5 h-3.5 text-blue-400" />
-                <span>Guest Evaluator Mode (Viewing Both Portals)</span>
+              <span className="inline-flex items-center gap-1.5 text-zinc-300 font-bold uppercase tracking-wider bg-zinc-800/60 px-3 py-1 rounded-full border border-zinc-700/60">
+                <Eye className="w-3.5 h-3.5 text-sky-400" />
+                <span>Guest Evaluator Mode</span>
               </span>
             )}
-            <span className="text-white/30 hidden md:inline">•</span>
-            <span className="text-white/50 hidden md:inline">
-              {currentUser.role === 'universal' || currentUser.role === 'guest'
-                ? 'Universal access active: Toggle between Employer and Employee views at any time via navbar controls.'
-                : currentUser.role === 'corporate'
-                ? 'Candidate Chamber hidden. Full administrative & vault access enabled.'
-                : 'Employer Dashboard locked. Candidate screening chamber active.'}
+            <span className="text-zinc-600 hidden md:inline">•</span>
+            <span className="text-zinc-400 hidden lg:inline text-[11px] font-sans">
+              {currentUser?.role === 'candidate'
+                ? 'Access restricted to Candidate / Employee Portal & T.H.I.S. Civility Evaluation (100% Free).'
+                : 'Subscribed Corporate Account: All-Access Pass active. Toggle between Employer HQ and Employee View.'}
             </span>
           </div>
 
-          <div className="flex items-center space-x-3">
-            {currentView === 'pricing' ? (
+          <div className="flex items-center space-x-2.5">
+            {currentView === 'landing' ? (
               <button
                 onClick={() => setCurrentView('portal')}
-                className="text-white underline hover:text-white/80 uppercase text-[10px] tracking-wider"
+                className="bg-amber-400 hover:bg-amber-300 text-black px-3.5 py-1.5 uppercase text-[10px] tracking-wider font-extrabold flex items-center gap-1.5 cursor-pointer rounded-full shadow-md"
               >
-                ← Return to {effectiveRole === 'business' ? 'Employer Portal' : 'Candidate Portal'}
+                <span>Return to {effectiveRole === 'business' ? 'Employer HQ' : 'Candidate Portal'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : currentView === 'pricing' ? (
+              <button
+                onClick={() => setCurrentView('portal')}
+                className="text-amber-300 hover:text-amber-200 underline uppercase text-[10px] tracking-wider cursor-pointer font-bold px-2 py-1"
+              >
+                ← Return to {effectiveRole === 'business' ? 'Employer HQ' : 'Employee Portal'}
               </button>
             ) : (
               <button
-                onClick={() => setCurrentView('pricing')}
-                className="text-purple-300 hover:text-purple-200 underline uppercase text-[10px] tracking-wider flex items-center gap-1"
+                onClick={() => setCurrentView('landing')}
+                className="text-amber-300 hover:text-amber-200 uppercase text-[10px] tracking-wider flex items-center gap-1 cursor-pointer font-bold px-2 py-1"
               >
-                <Sparkles className="w-3 h-3 text-purple-400" />
-                <span>SaaS Pricing & Storage Tiers</span>
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                <span>Ecosystem Guide</span>
+              </button>
+            )}
+
+            {currentView !== 'pricing' && currentUser?.role !== 'candidate' && (
+              <button
+                onClick={() => setCurrentView('pricing')}
+                className="text-sky-300 hover:text-sky-200 underline uppercase text-[10px] tracking-wider flex items-center gap-1 cursor-pointer font-bold px-2 py-1"
+              >
+                <span>Pricing Tiers</span>
               </button>
             )}
 
             <button
               onClick={() => setIsAuthModalOpen(true)}
-              className="bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 border border-white/20 uppercase text-[10px] tracking-wider font-bold"
+              className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3.5 py-1.5 border border-zinc-700 uppercase text-[10px] tracking-wider font-bold cursor-pointer rounded-full shadow-sm transition-transform active:scale-95"
             >
-              Switch Account Role
+              Switch Role
+            </button>
+
+            <button
+              onClick={handleUserLogout}
+              className="bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 px-3.5 py-1.5 border border-rose-500/30 uppercase text-[10px] tracking-wider font-bold flex items-center gap-1 cursor-pointer rounded-full transition-transform active:scale-95"
+            >
+              <LogOut className="w-3 h-3 text-rose-400" />
+              <span>Sign Out</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Main App Content View */}
-      <main className="flex-1 pb-16 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-2">
-        {/* First Page Executive Audio Motto & T.H.I.S. System Banner */}
-        <AudioVoiceBanner />
-
-        {currentView === 'pricing' ? (
+      <main className="flex-1 pb-16 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        {currentView === 'landing' ? (
+          <LandingPage
+            onLogin={handleUserLogin}
+            currentUser={currentUser}
+            onNavigateToPortal={() => setCurrentView('portal')}
+          />
+        ) : currentView === 'pricing' ? (
           <PricingCalculator
-            currentPlan={currentUser.plan || 'Growth'}
+            currentPlan={currentUser?.plan || 'Growth'}
             onSelectPlan={(plan) => {
-              setCurrentUser((prev) => ({ ...prev, plan }));
+              setCurrentUser((prev) => (prev ? { ...prev, plan } : { email: 'guest@company.com', role: 'corporate', name: 'Corporate Guest', organization: 'Civility Corp', plan }));
               alert(`Updated subscription plan to ${plan} Tier!`);
             }}
           />
@@ -347,6 +446,8 @@ export default function App() {
             talentRadarSignals={talentRadarSignals}
             trainingSessions={trainingSessions}
             crisisScenarios={crisisScenarios}
+            employeeJourneys={employeeJourneys}
+            onSaveEmployeeJourney={handleSaveEmployeeJourney}
             onAddJobRequirement={handleAddJobRequirement}
             onUpdateCandidateStatus={handleUpdateCandidateStatus}
             onDeleteCandidate={handleDeleteCandidate}
@@ -359,6 +460,9 @@ export default function App() {
         ) : (
           <CandidatePortal
             jobRequirements={jobRequirements}
+            employeeJourneys={employeeJourneys}
+            currentUser={currentUser}
+            onSaveEmployeeJourney={handleSaveEmployeeJourney}
             onSubmitAssessment={handleCandidateSubmitAssessment}
           />
         )}
@@ -376,15 +480,15 @@ export default function App() {
       <PrivateOwnerChat currentUser={currentUser} />
 
       {/* Footer */}
-      <footer className="bg-[#0A0A0A] border-t border-white/10 text-white/30 py-6 text-center text-[10px] uppercase tracking-widest font-mono mt-auto">
+      <footer className="bg-black border-t border-zinc-900 text-zinc-400 py-6 text-center text-[10px] uppercase tracking-widest font-mono mt-auto">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>&copy; {new Date().getFullYear()} Civility Corporate • Autonomous Candidate Intelligence Platform</span>
           <div className="flex items-center space-x-4">
-            <button onClick={() => setCurrentView('pricing')} className="text-purple-400 hover:underline">
+            <button onClick={() => setCurrentView('pricing')} className="text-amber-400 font-bold hover:underline">
               Pricing & Storage Calculator
             </button>
             <span>•</span>
-            <span className="text-white/20">Airtight Zero-Manpower Screening Systems</span>
+            <span className="text-zinc-500">Airtight Zero-Manpower Screening Systems</span>
           </div>
         </div>
       </footer>

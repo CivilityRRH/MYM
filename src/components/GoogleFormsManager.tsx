@@ -298,13 +298,13 @@ export const GoogleFormsManager: React.FC<GoogleFormsManagerProps> = ({
             </button>
           </div>
 
-          {selectedFormResponses.responses.length === 0 ? (
+          {(selectedFormResponses.responses || []).length === 0 ? (
             <p className="text-xs text-white/50 font-mono py-4">
               No submissions received yet for this Google Form.
             </p>
           ) : (
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-              {selectedFormResponses.responses.map((resp, idx) => (
+              {(selectedFormResponses.responses || []).map((resp, idx) => (
                 <div key={resp.responseId || idx} className="bg-[#121212] border border-white/10 p-3 text-xs font-mono text-white/80">
                   <div className="text-purple-400 font-bold mb-1">
                     Response #{idx + 1} • Submitted: {new Date(resp.createTime).toLocaleString()}

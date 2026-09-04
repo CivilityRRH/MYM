@@ -99,6 +99,98 @@
         "timestamp": { "type": "string" }
       },
       "required": ["id", "roleQuery"]
+    },
+    "EmployeeJourney": {
+      "title": "Employee Journey",
+      "description": "Employee continuous civility scores, refresher modules, and scorecard records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "role": { "type": "string" },
+        "department": { "type": "string" },
+        "certificationLevel": { "type": "string" },
+        "overallCurrentScore": { "type": "number" },
+        "hireDate": { "type": "string" },
+        "lastAssessedAt": { "type": "string" }
+      },
+      "required": ["id", "employeeName", "role"]
+    },
+    "RecentHireFeedItem": {
+      "title": "Recent Hire Feed Item",
+      "description": "Live social feed post for recent verified candidate hires",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "candidateName": { "type": "string" },
+        "candidateRole": { "type": "string" },
+        "hiredForJobTitle": { "type": "string" },
+        "civilityScore": { "type": "number" },
+        "announcementText": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "candidateName", "candidateRole"]
+    },
+    "TrainingSession": {
+      "title": "Training Session",
+      "description": "Recorded training or assessment session with score and feedback",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "candidateName": { "type": "string" },
+        "scenarioTitle": { "type": "string" },
+        "score": { "type": "number" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "scenarioTitle"]
+    },
+    "CrisisScenario": {
+      "title": "Crisis Scenario",
+      "description": "Custom or standard high-pressure crisis scenario",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "prompt": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "CompanyJobAd": {
+      "title": "Company Job Ad",
+      "description": "Company free job advertisement posting with commission terms",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "companyName": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "title", "companyName"]
+    },
+    "AdApplication": {
+      "title": "Ad Application",
+      "description": "Candidate application to a company job ad",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "adId": { "type": "string" },
+        "candidateName": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "adId", "candidateName"]
+    },
+    "CommissionInvoice": {
+      "title": "Commission Invoice",
+      "description": "Commission billing invoice record upon verified hire",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "companyName": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "companyName", "amount"]
     }
   },
   "firestore": {
@@ -109,6 +201,14 @@
     "/candidates/{candidateId}": {
       "schema": { "$ref": "#/entities/CandidateProfile" },
       "description": "Collection of candidate profiles and evaluations"
+    },
+    "/training_sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/TrainingSession" },
+      "description": "Collection of candidate training and assessment runs"
+    },
+    "/crisis_scenarios/{scenarioId}": {
+      "schema": { "$ref": "#/entities/CrisisScenario" },
+      "description": "Collection of emergency crisis scenarios"
     },
     "/google_forms/{formRecordId}": {
       "schema": { "$ref": "#/entities/GoogleFormItem" },
@@ -125,6 +225,30 @@
     "/linkedin_scout_queries/{queryId}": {
       "schema": { "$ref": "#/entities/LinkedInScoutQuery" },
       "description": "Collection of recorded LinkedIn scout searches in Firebase"
+    },
+    "/employee_journeys/{journeyId}": {
+      "schema": { "$ref": "#/entities/EmployeeJourney" },
+      "description": "Collection of staff member employee journeys and scorecards"
+    },
+    "/recent_hires/{feedItemId}": {
+      "schema": { "$ref": "#/entities/RecentHireFeedItem" },
+      "description": "Collection of recent hire feed items"
+    },
+    "/recent_hires_feed/{feedItemId}": {
+      "schema": { "$ref": "#/entities/RecentHireFeedItem" },
+      "description": "Collection of recent hire feed items alias"
+    },
+    "/company_job_ads/{adId}": {
+      "schema": { "$ref": "#/entities/CompanyJobAd" },
+      "description": "Collection of free company job postings"
+    },
+    "/ad_applications/{appId}": {
+      "schema": { "$ref": "#/entities/AdApplication" },
+      "description": "Collection of ad candidate submissions"
+    },
+    "/commission_invoices/{invoiceId}": {
+      "schema": { "$ref": "#/entities/CommissionInvoice" },
+      "description": "Collection of 12% placement commission invoices"
     }
   }
 }

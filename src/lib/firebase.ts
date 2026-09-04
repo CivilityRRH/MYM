@@ -1,27 +1,37 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, setLogLevel } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { testConnection } from './firestore-utils';
 
+// Set Firestore log level to suppress non-fatal transient offline/polling notices
+setLogLevel('error');
+
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+const rawConfig = firebaseConfig as any;
+export const db = rawConfig.firestoreDatabaseId && rawConfig.firestoreDatabaseId !== '(default)'
+  ? getFirestore(app, rawConfig.firestoreDatabaseId)
   : getFirestore(app);
 export const auth = getAuth(app);
 
-// Test Firestore connection on initialization
+// Graceful background connection check
 testConnection(db);
 
 export const googleAuthProvider = new GoogleAuthProvider();
-// Workspace Scopes for Forms, Tasks, and Drive
+// Workspace Scopes for Forms, Tasks, Drive, and Classroom
 googleAuthProvider.addScope('https://www.googleapis.com/auth/forms.body');
 googleAuthProvider.addScope('https://www.googleapis.com/auth/forms.body.readonly');
 googleAuthProvider.addScope('https://www.googleapis.com/auth/forms.responses.readonly');
 googleAuthProvider.addScope('https://www.googleapis.com/auth/tasks');
 googleAuthProvider.addScope('https://www.googleapis.com/auth/tasks.readonly');
 googleAuthProvider.addScope('https://www.googleapis.com/auth/drive.file');
+googleAuthProvider.addScope('https://www.googleapis.com/auth/classroom.courses');
+googleAuthProvider.addScope('https://www.googleapis.com/auth/classroom.courses.readonly');
+googleAuthProvider.addScope('https://www.googleapis.com/auth/classroom.coursework.students');
+googleAuthProvider.addScope('https://www.googleapis.com/auth/classroom.coursework.me');
+googleAuthProvider.addScope('https://www.googleapis.com/auth/classroom.announcements');
+googleAuthProvider.addScope('https://www.googleapis.com/auth/classroom.rosters');
 
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;

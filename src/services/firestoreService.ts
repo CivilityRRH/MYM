@@ -1,7 +1,19 @@
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
-import { JobRequirement, CandidateProfile, TrainingSessionRecord, CrisisScenarioRecord, LinkedInAuthAccount, LinkedInScoutQuery } from '../types';
+import {
+  JobRequirement,
+  CandidateProfile,
+  TrainingSessionRecord,
+  CrisisScenarioRecord,
+  LinkedInAuthAccount,
+  LinkedInScoutQuery,
+  EmployeeJourneyRecord,
+  RecentHireFeedItem,
+  CompanyJobAd,
+  AdApplication,
+  CommissionInvoiceRecord
+} from '../types';
 
 const JOBS_COLLECTION = 'job_requirements';
 const CANDIDATES_COLLECTION = 'candidates';
@@ -9,6 +21,11 @@ const TRAINING_SESSIONS_COLLECTION = 'training_sessions';
 const CRISIS_SCENARIOS_COLLECTION = 'crisis_scenarios';
 const LINKEDIN_SCOUTS_COLLECTION = 'linkedin_scouts';
 const LINKEDIN_QUERIES_COLLECTION = 'linkedin_scout_queries';
+const EMPLOYEE_JOURNEYS_COLLECTION = 'employee_journeys';
+const RECENT_HIRES_COLLECTION = 'recent_hires_feed';
+const COMPANY_ADS_COLLECTION = 'company_job_ads';
+const AD_APPLICATIONS_COLLECTION = 'ad_applications';
+const COMMISSION_INVOICES_COLLECTION = 'commission_invoices';
 
 export const subscribeToJobRequirements = (
   onSuccess: (jobs: JobRequirement[]) => void,
@@ -30,7 +47,11 @@ export const subscribeToJobRequirements = (
     },
     (error) => {
       console.error('Firestore jobs subscription error:', error);
-      if (onError) onError(error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${JOBS_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
     }
   );
 };
@@ -55,7 +76,11 @@ export const subscribeToCandidateProfiles = (
     },
     (error) => {
       console.error('Firestore candidates subscription error:', error);
-      if (onError) onError(error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${CANDIDATES_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
     }
   );
 };
@@ -80,7 +105,11 @@ export const subscribeToTrainingSessions = (
     },
     (error) => {
       console.error('Firestore training sessions subscription error:', error);
-      if (onError) onError(error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${TRAINING_SESSIONS_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
     }
   );
 };
@@ -105,7 +134,11 @@ export const subscribeToCrisisScenarios = (
     },
     (error) => {
       console.error('Firestore crisis scenarios subscription error:', error);
-      if (onError) onError(error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${CRISIS_SCENARIOS_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
     }
   );
 };
@@ -208,7 +241,11 @@ export const subscribeToLinkedInAuthAccount = (
     },
     (error) => {
       console.error('Firestore LinkedIn Scout Auth subscription error:', error);
-      if (onError) onError(error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${LINKEDIN_SCOUTS_COLLECTION}/${scoutId}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
     }
   );
 };
@@ -245,7 +282,11 @@ export const subscribeToLinkedInScoutQueries = (
     },
     (error) => {
       console.error('Firestore LinkedIn Scout queries subscription error:', error);
-      if (onError) onError(error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${LINKEDIN_QUERIES_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
     }
   );
 };
@@ -260,5 +301,219 @@ export const saveLinkedInScoutQueryToFirestore = async (
     handleFirestoreError(err, OperationType.WRITE, `/${LINKEDIN_QUERIES_COLLECTION}/${queryRecord.id}`, auth.currentUser);
   }
 };
+
+export const subscribeToEmployeeJourneys = (
+  onSuccess: (journeys: EmployeeJourneyRecord[]) => void,
+  onError?: (err: Error) => void
+) => {
+  const q = query(collection(db, EMPLOYEE_JOURNEYS_COLLECTION));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const journeys: EmployeeJourneyRecord[] = [];
+      snapshot.forEach((docSnap) => {
+        journeys.push({
+          ...docSnap.data(),
+          id: docSnap.id
+        } as EmployeeJourneyRecord);
+      });
+      onSuccess(journeys);
+    },
+    (error) => {
+      console.error('Firestore Employee Journeys subscription error:', error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${EMPLOYEE_JOURNEYS_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
+    }
+  );
+};
+
+export const saveEmployeeJourneyToFirestore = async (
+  journey: EmployeeJourneyRecord
+): Promise<void> => {
+  const docRef = doc(db, EMPLOYEE_JOURNEYS_COLLECTION, journey.id);
+  try {
+    await setDoc(docRef, sanitizeFirestoreData(journey), { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `/${EMPLOYEE_JOURNEYS_COLLECTION}/${journey.id}`, auth.currentUser);
+  }
+};
+
+export const subscribeToRecentHiresFeed = (
+  onSuccess: (items: RecentHireFeedItem[]) => void,
+  onError?: (err: Error) => void
+) => {
+  const q = query(collection(db, RECENT_HIRES_COLLECTION));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const items: RecentHireFeedItem[] = [];
+      snapshot.forEach((docSnap) => {
+        items.push({
+          ...docSnap.data(),
+          id: docSnap.id
+        } as RecentHireFeedItem);
+      });
+      items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      onSuccess(items);
+    },
+    (error) => {
+      console.error('Firestore Recent Hires Feed subscription error:', error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${RECENT_HIRES_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
+    }
+  );
+};
+
+export const saveRecentHireFeedItemToFirestore = async (
+  item: RecentHireFeedItem
+): Promise<void> => {
+  const docRef = doc(db, RECENT_HIRES_COLLECTION, item.id);
+  try {
+    await setDoc(docRef, sanitizeFirestoreData(item), { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `/${RECENT_HIRES_COLLECTION}/${item.id}`, auth.currentUser);
+  }
+};
+
+// ==================== COMPANY FREE ADS & COMMISSION SYSTEM ====================
+
+export const subscribeToCompanyAds = (
+  onSuccess: (ads: CompanyJobAd[]) => void,
+  onError?: (err: Error) => void
+) => {
+  const q = query(collection(db, COMPANY_ADS_COLLECTION));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const ads: CompanyJobAd[] = [];
+      snapshot.forEach((docSnap) => {
+        ads.push({
+          ...docSnap.data(),
+          id: docSnap.id
+        } as CompanyJobAd);
+      });
+      ads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      onSuccess(ads);
+    },
+    (error) => {
+      console.error('Firestore company ads subscription error:', error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${COMPANY_ADS_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
+    }
+  );
+};
+
+export const saveCompanyAdToFirestore = async (
+  ad: CompanyJobAd
+): Promise<void> => {
+  const docRef = doc(db, COMPANY_ADS_COLLECTION, ad.id);
+  try {
+    await setDoc(docRef, sanitizeFirestoreData(ad), { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `/${COMPANY_ADS_COLLECTION}/${ad.id}`, auth.currentUser);
+  }
+};
+
+export const deleteCompanyAdFromFirestore = async (
+  adId: string
+): Promise<void> => {
+  const docRef = doc(db, COMPANY_ADS_COLLECTION, adId);
+  try {
+    await deleteDoc(docRef);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `/${COMPANY_ADS_COLLECTION}/${adId}`, auth.currentUser);
+  }
+};
+
+export const subscribeToAdApplications = (
+  onSuccess: (apps: AdApplication[]) => void,
+  onError?: (err: Error) => void
+) => {
+  const q = query(collection(db, AD_APPLICATIONS_COLLECTION));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const apps: AdApplication[] = [];
+      snapshot.forEach((docSnap) => {
+        apps.push({
+          ...docSnap.data(),
+          id: docSnap.id
+        } as AdApplication);
+      });
+      apps.sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime());
+      onSuccess(apps);
+    },
+    (error) => {
+      console.error('Firestore ad applications subscription error:', error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${AD_APPLICATIONS_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
+    }
+  );
+};
+
+export const saveAdApplicationToFirestore = async (
+  app: AdApplication
+): Promise<void> => {
+  const docRef = doc(db, AD_APPLICATIONS_COLLECTION, app.id);
+  try {
+    await setDoc(docRef, sanitizeFirestoreData(app), { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `/${AD_APPLICATIONS_COLLECTION}/${app.id}`, auth.currentUser);
+  }
+};
+
+export const subscribeToCommissionInvoices = (
+  onSuccess: (invoices: CommissionInvoiceRecord[]) => void,
+  onError?: (err: Error) => void
+) => {
+  const q = query(collection(db, COMMISSION_INVOICES_COLLECTION));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const invoices: CommissionInvoiceRecord[] = [];
+      snapshot.forEach((docSnap) => {
+        invoices.push({
+          ...docSnap.data(),
+          id: docSnap.id
+        } as CommissionInvoiceRecord);
+      });
+      invoices.sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime());
+      onSuccess(invoices);
+    },
+    (error) => {
+      console.error('Firestore commission invoices subscription error:', error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `/${COMMISSION_INVOICES_COLLECTION}`, auth.currentUser);
+      } catch (err: any) {
+        if (onError) onError(err);
+      }
+    }
+  );
+};
+
+export const saveCommissionInvoiceToFirestore = async (
+  invoice: CommissionInvoiceRecord
+): Promise<void> => {
+  const docRef = doc(db, COMMISSION_INVOICES_COLLECTION, invoice.id);
+  try {
+    await setDoc(docRef, sanitizeFirestoreData(invoice), { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `/${COMMISSION_INVOICES_COLLECTION}/${invoice.id}`, auth.currentUser);
+  }
+};
+
+
 
 

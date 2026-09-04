@@ -39,7 +39,7 @@ export const INITIAL_JOB_REQUIREMENTS: JobRequirement[] = [
     roleName: 'Corporate Compliance & Operations Lead',
     ageRange: '21 - 65',
     minExperienceYears: 3,
-    skills: ['FCRA Compliance', 'Audit Oversight', 'Enterprise Risk Management', 'Financial Protocol'],
+    skills: ['Regulatory Compliance', 'Audit Oversight', 'Enterprise Risk Management', 'Financial Protocol'],
     uniqueExceptionsCriteria: 'Demonstrated experience leading enterprise compliance audits or legal paralegal operations qualifies in lieu of standard MBA.',
     radiusMiles: 50,
     offerRelocationCost: false,
@@ -99,305 +99,272 @@ export const INITIAL_JOB_REQUIREMENTS: JobRequirement[] = [
   }
 ];
 
-export const INITIAL_CANDIDATES: CandidateProfile[] = [
-  {
-    id: 'cand-01',
-    fullName: 'Jordan Taylor',
-    email: 'j.taylor@apextech.io',
-    phone: '+1 (512) 771-9920',
-    locationCity: 'Austin, TX',
-    coordinates: { lat: 30.2672, lng: -97.7431 },
-    geohash: '9v6khp2',
-    age: 31,
-    experienceYears: 6,
-    skills: ['Incident Response', 'Zero Trust Architecture', 'Cloud Security', 'Python'],
-    distanceFromCompanyMiles: 18,
-    willingToRelocate: true,
-    bgCheckConsented: true,
-    bgCheckSignedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    bgCheckSsnLast4: '8812',
-    currentCompany: 'Apex Security Systems',
-    currentRole: 'Senior Cyber Defense Lead',
-    isCompetitorProspect: true,
-    competitorNotes: 'Top engineer from primary regional competitor. Highly sought after.',
-    matchesUniqueExceptions: true,
-    exceptionMatchReason: 'Verified 4 years active threat defense and lead CVE responder.',
-    status: 'top_prospect',
-    resume: {
-      fileName: 'Jordan_Taylor_Cybersecurity_Lead_Resume.pdf',
-      fileSize: 245000,
-      parsedText: 'JORDAN TAYLOR - Senior Cybersecurity Engineer & Threat Response Lead. 6+ years experience in Zero Trust, incident response, SIEM, and cloud infrastructure security. Led emergency response for 14 major CVE incidents across AWS and GCP environments.',
-      summaryHighlights: [
-        '6+ years in high-stakes cyber defense & threat modeling',
-        'Built automated zero-trust authorization pipeline handling 5M daily requests',
-        'Certified Information Systems Security Professional (CISSP) & CEH'
-      ],
-      uploadedAt: new Date(Date.now() - 86400000 * 2).toISOString()
-    },
-    archetypeProjection: {
-      title: 'The Strategic Crisis Diplomat',
-      primaryCategory: 'Crisis Resilient Leader',
-      summary: 'Maintains unshakeable composure in high-pressure scenarios, blending calm diplomatic vocal clarity with rigorous ethical security protocols.',
-      dimensions: {
-        resilience: 96,
-        ethicsIntegrity: 95,
-        diplomaticTact: 98,
-        highPressureComposure: 94,
-        innovationDrive: 91
-      },
-      keyBehavioralTraits: ['Unflappable vocal cadence', 'Protocol-first crisis triage', 'De-escalation leader', 'Blameless post-mortem driver'],
-      optimalWorkEnvironment: 'High-stakes security engineering teams where quick crisis resolution and high integrity are paramount.',
-      questionsAnswers: {
-        'Work Leadership Style': 'Calm, authoritative, and empowering during high-severity system incidents.',
-        'Conflict Vector': 'De-escalates by separating emotional reactions from objective data facts.',
-        'Crisis Temperament': 'Maintains steady vocal tone, isolates threat vectors systematically, and communicates clearly.'
-      },
-      generatedAt: new Date(Date.now() - 86400000 * 2).toISOString()
-    },
-    submission: {
-      jobId: 'job-cyber-01',
-      bgCheckConsented: true,
-      bgCheckSignedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      bgCheckSsnLast4: '8812',
-      ethicsAnswers: {
-        'ethics_0': 'I isolate the zero-day immediately, implement temporary runtime safeguards, and notify both security ops and account executives in parallel.',
-        'ethics_1': 'I politely decline executive bypass requests, document the risk assessment in writing, and offer an expedited compliance audit pathway instead.'
-      },
-      etiquetteAnswers: {
-        'etiquette_0': 'I present audit findings using objective risk impact metrics rather than accusatory statements, emphasizing shared security goals.',
-        'etiquette_1': 'All elevated third-party permissions expire within 4 hours, require MFA token approval, and are recorded in immutable audit logs.'
-      },
-      mannersAnswers: {
-        'manners_0': 'I maintain a firm, reassuring tone during incidents, assigning clear tasks and keeping emotion out of crisis triage.',
-        'manners_1': 'I take direct ownership of team oversights, conduct a blameless post-mortem, and implement automated prevention controls.'
-      },
-      toneAudioTranscript: 'When a colleague is promoted ahead of me, I acknowledge my initial disappointment internally, keep my composure, and genuinely congratulate them while setting up a 1-on-1 with my manager to discuss my personal growth trajectory.',
-      toneAudioDurationSec: 28,
-      pressureVideoTranscript: 'It is 2:00 AM. I immediately confirm the intrusion indicators, isolate affected network segments to prevent data exfiltration, verify backup integrity, and initiate our emergency communication tree.',
-      pressureVideoDurationSec: 42,
-      motivationVideoTranscript: 'My deep driving force is building resilient systems that protect human privacy. I am eager to master new defense protocols and fully dedicate my skills to Civility.',
-      motivationVideoDurationSec: 35,
-      submittedAt: new Date(Date.now() - 86400000 * 2).toISOString()
-    },
-    evaluation: {
-      civilityScore: 96,
-      toneScore: 98,
-      ethicsScore: 95,
-      pressureScore: 94,
-      driveScore: 97,
-      overallSummary: 'Exceptional candidate demonstrating near-perfect emotional composure under pressure, airtight ethics protocols, and a clear leadership voice.',
-      toneEvaluation: 'Vocal inflection was remarkably steady, empathetic, and professional during promotional conflict prompts.',
-      pressureEvaluation: 'Decisive 2 AM crisis triage with structured logic and zero signs of panic.',
-      ethicsEvaluation: 'Uncompromising adherence to compliance protocols and blameless post-mortem culture.',
-      driveEvaluation: 'Proactive commitment to mastery and team alignment.',
-      keyStrengths: ['Calm Voice Composure', 'Airtight Ethics', 'Active Threat Triage', 'FCRA Verified'],
-      potentialRisks: ['High market demand - requires competitive offer'],
-      recommendationTier: 'Top Prospect',
-      evaluatedAt: new Date(Date.now() - 86400000 * 2).toISOString()
-    }
+export const PIONEER_RONNIE_HILL_PROFILE: CandidateProfile = {
+  id: 'pioneer-ronnie-hill-01',
+  fullName: 'Ronnie Hill',
+  email: 'ronniehillsugc@gmail.com',
+  phone: '+1 (512) 840-2910',
+  locationCity: 'Austin, TX',
+  coordinates: {
+    lat: 30.2672,
+    lng: -97.7431
   },
-  {
-    id: 'cand-02',
-    fullName: 'Elena Rostova',
-    email: 'elena.rostova@globalcompliance.org',
-    phone: '+1 (212) 409-3321',
-    locationCity: 'New York, NY',
-    coordinates: { lat: 40.7128, lng: -74.0060 },
-    geohash: 'dr5regw',
-    age: 29,
-    experienceYears: 5,
-    skills: ['FCRA Compliance', 'Audit Oversight', 'Enterprise Risk Management', 'Financial Protocol'],
-    distanceFromCompanyMiles: 12,
-    willingToRelocate: false,
-    bgCheckConsented: true,
-    bgCheckSignedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    bgCheckSsnLast4: '4190',
-    currentCompany: 'Metropolitan Financial Services',
-    currentRole: 'Senior Audit & Regulatory Specialist',
-    isCompetitorProspect: false,
-    competitorNotes: 'Direct financial audit background with spotless regulatory record.',
-    matchesUniqueExceptions: true,
-    exceptionMatchReason: 'Led enterprise FINRA/FCRA audits for 3 consecutive years.',
-    status: 'top_prospect',
-    resume: {
-      fileName: 'Elena_Rostova_Compliance_Audit_Resume.pdf',
-      fileSize: 198000,
-      parsedText: 'ELENA ROSTOVA - Senior Audit & Regulatory Specialist. 5+ years experience directing FINRA, SEC, and FCRA regulatory compliance audits. Designed automated risk assessment matrices for tier-1 financial institutions.',
-      summaryHighlights: [
-        '5+ years in tier-1 financial audit & compliance leadership',
-        'Direct experience liaising with SEC/FINRA regulatory oversight boards',
-        'Certified Anti-Money Laundering Specialist (CAMS)'
-      ],
-      uploadedAt: new Date(Date.now() - 86400000 * 3).toISOString()
+  geohash: '9v6s42u',
+  age: 38,
+  experienceYears: 14,
+  skills: [
+    'Systems Architecture',
+    'AI Kinesics & Acoustic DSP',
+    'Civility Framework Design',
+    'Organizational Psychology',
+    'Autonomous Recruitment Design',
+    'Cross-Functional Leadership'
+  ],
+  distanceFromCompanyMiles: 12,
+  willingToRelocate: true,
+  bgCheckConsented: true,
+  bgCheckSignedAt: new Date().toISOString(),
+  bgCheckSsnLast4: '7704',
+  currentCompany: 'Mind Your Manners Global',
+  currentRole: 'Platform Founder & Lead Pioneer Architect',
+  isCompetitorProspect: false,
+  matchesUniqueExceptions: true,
+  exceptionMatchReason: 'Platform Pioneer & Inventor: Conceptualized zero-interview autonomous hiring, positive archetype calibration, and lifelong civility ecosystem.',
+  status: 'top_prospect',
+  archetypeProjection: {
+    title: 'The Resilient Pioneer & Systems Luminary',
+    primaryCategory: 'Executive Strategist',
+    summary: 'Ronnie operates as an uncommon visionary who synthesizes deep human empathy, ethical steadfastness, and structural systems logic to build transformative platforms. Where others see friction, he engineers enduring harmony.',
+    dimensions: {
+      resilience: 99,
+      ethicsIntegrity: 100,
+      diplomaticTact: 98,
+      highPressureComposure: 97,
+      innovationDrive: 100
     },
-    archetypeProjection: {
-      title: 'The Ethical Sentinel',
-      primaryCategory: 'Ethical Sentinel',
-      summary: 'Demonstrates uncompromising ethical integrity and regulatory precision under direct executive scrutiny.',
-      dimensions: {
-        resilience: 92,
-        ethicsIntegrity: 99,
-        diplomaticTact: 95,
-        highPressureComposure: 93,
-        innovationDrive: 88
-      },
-      keyBehavioralTraits: ['Airtight regulatory precision', 'Methodical documentation', 'Objective de-escalation', 'Zero tolerance for shortcuts'],
-      optimalWorkEnvironment: 'Highly regulated enterprise environments requiring impeccable audit trails and legal compliance.',
-      questionsAnswers: {
-        'Work Leadership Style': 'Methodical, principle-driven, and highly detailed.',
-        'Conflict Vector': 'Aligns disputing parties around transparent regulatory guidelines.',
-        'Crisis Temperament': 'Remains calm and composed when receiving unexpected audit teams or regulatory inquiries.'
-      },
-      generatedAt: new Date(Date.now() - 86400000 * 3).toISOString()
+    keyBehavioralTraits: [
+      'Pioneering Vision: Architects foundational ecosystems where none existed before',
+      'Radical Empathy & Compassion: Channels personal life adversity into empowering platforms for others',
+      'Uncompromising Ethical Anchor: Establishes fair, objective, and unbiased standards',
+      'Relentless Perseverance: Builds life\'s palace with unwavering dedication and craftsman precision'
+    ],
+    optimalWorkEnvironment: 'High-impact visionary leadership, groundbreaking venture ecosystems, and organizations dedicated to human elevation.',
+    questionsAnswers: {
+      'Work Leadership Style': 'Lead by quiet exemplary integrity, empowering every individual to realize their truest potential.',
+      'Conflict Vector': 'De-escalate friction into unifying momentum through active listening and shared purpose.',
+      'Crisis Temperament': 'Rock-solid calm equilibrium that grounds teams during high-stakes uncertainty.',
+      'Ethical Stance': 'Integrity is absolute and non-negotiable; true honor is built when nobody is watching.',
+      'Innovation & Drive': 'Fueled by an unquenchable drive to solve deep human challenges and leave a lasting legacy.'
     },
-    submission: {
-      jobId: 'job-fin-02',
-      bgCheckConsented: true,
-      bgCheckSignedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      bgCheckSsnLast4: '4190',
-      ethicsAnswers: {
-        'ethics_0': 'I document the discrepancy, flag it for immediate audit committee review, and adjust the internal control framework to prevent recurrence.',
-        'ethics_1': 'Executive board disclosures are strictly protected behind encrypted access controls with signed NDA verification.'
-      },
-      etiquetteAnswers: {
-        'etiquette_0': 'I frame compliance non-conformances as operational risk reductions, providing actionable remediation steps for partners.',
-        'etiquette_1': 'Compliance reviews are scheduled with clear agendas, objective benchmark scorecards, and constructive feedback loops.'
-      },
-      mannersAnswers: {
-        'manners_0': 'I listen attentively to objections, provide regulatory precedent, and keep discussions focused on risk mitigation.',
-        'manners_1': 'I de-escalate heated audit debates by focusing on factual evidence and joint solution building.'
-      },
-      toneAudioTranscript: 'When challenged aggressively during a conference call, I maintain a measured tone, pause to absorb the feedback, and reference clear regulatory guidelines to align expectations.',
-      toneAudioDurationSec: 32,
-      pressureVideoTranscript: 'Unannounced audit arrival: I immediately greet the auditors, verify credentials, escort them to our secure conference suite, and notify our legal team while pulling the pre-verified audit packet.',
-      pressureVideoDurationSec: 45,
-      motivationVideoTranscript: 'I am deeply motivated by creating transparent, trustworthy organizations where compliance serves as a competitive advantage.',
-      motivationVideoDurationSec: 30,
-      submittedAt: new Date(Date.now() - 86400000 * 3).toISOString()
-    },
-    evaluation: {
-      civilityScore: 94,
-      toneScore: 95,
-      ethicsScore: 97,
-      pressureScore: 92,
-      driveScore: 92,
-      overallSummary: 'High-integrity compliance professional with authoritative poise, strong vocal composure, and deep legal audit experience.',
-      toneEvaluation: 'Diplomatic, unflappable voice tone under confrontational scenario prompts.',
-      pressureEvaluation: 'Extremely organized emergency auditor reception protocol.',
-      ethicsEvaluation: 'Top tier compliance rigor with zero tolerance for corner-cutting.',
-      driveEvaluation: 'Strong personal dedication to enterprise transparency.',
-      keyStrengths: ['FCRA & Legal Audit Expertise', 'Diplomatic De-escalation', 'Rigorous Ethics'],
-      potentialRisks: ['Prefers East Coast location'],
-      recommendationTier: 'Top Prospect',
-      evaluatedAt: new Date(Date.now() - 86400000 * 3).toISOString()
-    }
+    generatedAt: new Date().toISOString()
   },
-  {
-    id: 'cand-03',
-    fullName: 'Marcus Vance',
-    email: 'marcus.vance@cloudnative.dev',
-    phone: '+1 (206) 882-1044',
-    locationCity: 'Seattle, WA',
-    coordinates: { lat: 47.6062, lng: -122.3321 },
-    geohash: 'c23nb62',
-    age: 34,
-    experienceYears: 7,
-    skills: ['TypeScript', 'React', 'Node.js', 'LLM Integration', 'System Design'],
-    distanceFromCompanyMiles: 24,
-    willingToRelocate: true,
+  submission: {
+    jobId: 'job-dev-03',
+    candidateName: 'Ronnie Hill',
+    candidateEmail: 'ronniehillsugc@gmail.com',
+    candidateCity: 'Austin, TX',
     bgCheckConsented: true,
-    bgCheckSignedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-    bgCheckSsnLast4: '2209',
-    currentCompany: 'Frontier AI Systems',
-    currentRole: 'Principal Staff Architect',
-    isCompetitorProspect: true,
-    competitorNotes: 'Authored multi-agent orchestration engine with 2,500+ GitHub stars.',
-    matchesUniqueExceptions: true,
-    exceptionMatchReason: 'Shipped major open-source AI infrastructure used by 500+ orgs.',
-    status: 'screening',
-    resume: {
-      fileName: 'Marcus_Vance_Staff_Architect_Resume.pdf',
-      fileSize: 310000,
-      parsedText: 'MARCUS VANCE - Principal Staff Systems Architect. 7+ years building high-concurrency cloud distributed systems, TS/Node microservices, and agentic AI pipelines. Created widely adopted open-source orchestration tool with 2,500+ stars.',
-      summaryHighlights: [
-        '7+ years architecting distributed systems & multi-agent AI frameworks',
-        '2,500+ GitHub stars on open-source cloud orchestration framework',
-        'Expert in high-throughput Node.js & React streaming architectures'
+    bgCheckSignedAt: new Date().toISOString(),
+    bgCheckSsnLast4: '7704',
+    ethicsAnswers: {
+      'Ethics Q1': 'Integrity is the bedrock of everything. When facing ethical dilemmas, transparency and protective accountability come before short-term convenience.',
+      'Ethics Q2': 'I proactively advocate for ethical standards and psychological safety, creating environments where everyone thrives with dignity.'
+    },
+    etiquetteAnswers: {
+      'Etiquette Q1': 'I deliver feedback and communicate findings with precision, warm diplomatic poise, and constructive solutions.',
+      'Etiquette Q2': 'Confidentiality and system trust are safeguarded with rigorous personal and operational discipline.'
+    },
+    mannersAnswers: {
+      'Manners Q1': 'Under intense pressure, true character shines through respectful words, steady breath, and gratitude toward fellow team members.',
+      'Manners Q2': 'When mistakes happen, I take full personal ownership immediately and turn the event into an institutional learning milestone.'
+    },
+    toneAudioTranscript: 'When challenges arise, my commitment is to keep everyone calm, focused, and aligned on our mission with unconditional respect.',
+    toneAudioDurationSec: 32,
+    toneAudioUrl: '',
+    vocalEvaluation: {
+      overallVocalScore: 98.4,
+      pitchModulationScore: 97.5,
+      emotionalComposureScore: 99.0,
+      cadencePacingScore: 98.0,
+      verbalSubstanceScore: 99.2,
+      exactGrade: '98.4% - Executive Sovereign Poise • Pioneer Standard',
+      isPassing: true,
+      ladderStatus: 'Pioneer Apex Standard • Gold Honor Roll',
+      acousticMetrics: {
+        pitchStabilityPercent: 98.6,
+        decibelSteadiness: 'Optimal Dynamic Resonance (58 - 66 dB)',
+        speechPacingWpm: 134,
+        silenceHesitationRatioPercent: 4.2,
+        inflectionWarmthRating: 'Warm Sovereign Diplomatic'
+      },
+      vocalToneFeedback: 'Exceptional resonance, stable acoustic cadence, and authentic vocal warmth that inspires confidence.',
+      verbalResponseFeedback: 'Articulate, grounded, and deeply principled communication.',
+      whatNeedsImprovementToReach100: 'Continue leading as the beacon of vocal composure.',
+      whatShouldHaveBeenDoneInstead: 'Exemplary delivery achieved.',
+      exemplarVocalDelivery: 'Maintain this measured sovereign tone across all executive engagements.',
+      keyStrengths: ['Sovereign pitch equilibrium', 'Vocal warmth and resonance', 'Zero defensive tremor'],
+      coachingTipsForPerfection: ['Continue inspiring teams with steady cadences.'],
+      evaluatedAt: new Date().toISOString()
+    },
+    pressureVideoTranscript: 'In moments of crisis, we step into the breach. We isolate the problem, protect our people, communicate transparently, and execute the containment protocol step-by-step.',
+    pressureVideoDurationSec: 45,
+    pressureVideoUrl: '',
+    videoEvaluation: {
+      overallVideoScore: 98.8,
+      bodyLanguageScore: 99.0,
+      responseToneScore: 98.5,
+      crisisResponseSubstanceScore: 99.0,
+      genuineResponseScore: 99.2,
+      exactGrade: '98.8% - Certified Sovereign Kinesics • Zero Panic Anchor',
+      isPassing: true,
+      ladderStatus: 'Pioneer Benchmark Passed (98.8%)',
+      scientificKinesics: {
+        presenceDetected: true,
+        presenceConfidencePercent: 99.5,
+        diagnosticMessage: 'Pioneer Subject Verified',
+        oculometrics: {
+          fixationRatioPercent: 96.5,
+          saccadeFrequencyPerMin: 14.0,
+          gazeAversionPattern: 'direct_anchored',
+          cognitiveVsNervousAnalysis: 'Masterful lens anchoring with natural cognitive lateral pauses.',
+          blinkRatePerMin: 16.0,
+          blinkStressClassification: 'normal_relaxed'
+        },
+        kinesicMovements: {
+          posturalSwayIndex: 8.0,
+          adaptorFrequency: 'Minimal / Grounded',
+          illustratorEffectiveness: 'High Speech-Gesture Synchrony',
+          nervousSystemState: 'regulated_ventral',
+          shoulderTensionScore: 12
+        },
+        developmentalTrainingPlan: {
+          candidateField: 'Executive Systems Pioneer',
+          primaryGrowthArea: 'Global Scaling & Leadership Amplification',
+          scientificBehavioralInsight: 'Natural ventral vagal regulation inspires visceral security across teams.',
+          dailyDrills: [
+            {
+              title: 'Visionary Horizon Calibration',
+              objective: 'Expand strategic reach across global networks.',
+              protocol: 'Deliver inspiring executive addresses with unwavering cadence.',
+              scientificRationale: 'Synchronizes cross-functional teams around visionary goals.'
+            }
+          ],
+          careerProjectionAdvantage: 'Exemplifies world-class executive poise and mission-driven conviction.'
+        }
+      },
+      bodyLanguageMetrics: {
+        eyeContactConsistencyPercent: 96.5,
+        postureSteadinessPercent: 98.0,
+        facialComposureRating: 'Commanding Executive Poise',
+        fidgetingIndex: 'Minimal / Grounded',
+        gesturePoise: 'Purposeful & Sovereign'
+      },
+      bodyLanguageFeedback: 'Exemplary upright posture with unwavering lens lock and calm respiratory cadence.',
+      responseToneFeedback: 'Measured, warm, authoritative vocal timbre with natural empathetic inflection.',
+      crisisMitigationFeedback: 'Flawless strategic alignment, rapid prioritization, and calm stakeholder reassurance.',
+      whatNeedsImprovementToReach100: 'Continue expanding global visionary reach.',
+      whatShouldHaveBeenDoneInstead: 'Candidate executed optimal pioneer benchmark response.',
+      exemplarCrisisResponse: 'Maintain centered eye focus and articulate step-by-step organizational alignment.',
+      keyStrengths: [
+        '96.5% Optical Lens Lock',
+        'Ventral Vagal Regulated Composure',
+        'Visionary Executive Conviction'
       ],
-      uploadedAt: new Date(Date.now() - 86400000 * 1).toISOString()
+      coachingTipsForPerfection: [
+        'Maintain current sovereign cadence across all international boardrooms'
+      ],
+      evaluatedAt: new Date().toISOString()
     },
-    archetypeProjection: {
-      title: 'The Adaptive Catalyst',
-      primaryCategory: 'Adaptive Catalyst',
-      summary: 'High-energy innovator who rapidly converts high-stress architectural bottlenecks into scalable product breakthroughs.',
-      dimensions: {
-        resilience: 91,
-        ethicsIntegrity: 93,
-        diplomaticTact: 90,
-        highPressureComposure: 95,
-        innovationDrive: 99
+    callingVideoPrompt: 'Introduce yourself to the self you know you\'ve always been. What\'s your passion and your life experience endeavors that formed you as a person. Have you had a chance to build your lifes palace built by that passion and how has compassion fueled the path to now form to your truest potential?.',
+    callingVideoTranscript: 'I introduce myself to the self I have always known inside: a builder, a protector, and a tireless visionary who believes every human deserves a fair chance to show who they truly are. Through life endeavors filled with both intense fire and profound learning, compassion became the compass that directed my passion. I have dedicated myself to building this palace—a platform where character, manners, and true human spirit rise above superficial noise and bring people together until retirement.',
+    callingVideoDurationSec: 62,
+    callingVideoUrl: '',
+    trueCallingEvaluation: {
+      overallCallingScore: 99.4,
+      callingSummary: 'Ronnie Hill embodies the rare archetype of the Compassionate Pioneer Architect. His life endeavors have forged an inner self anchored in profound empathy, craftsmanship, and visionary execution. His passion is grounded in the noble pursuit of building enduring palaces of opportunity for others.',
+      passionHighestPointAnalysis: {
+        currentZenithScore: 99,
+        isAtPeak: true,
+        howToFuelToHighestPoint: 'His passion is operating at its maximum zenith—deploying Mind Your Manners globally to eradicate hiring friction and unlock human civility worldwide.',
+        acceleratorConditions: [
+          'Global institutional adoption across corporate enterprises',
+          'Empowering millions of overlooked candidates to shine on their truest merits',
+          'Continuous innovation in autonomous behavioral and acoustic evaluation'
+        ]
       },
-      keyBehavioralTraits: ['Architectural velocity', 'Pragmatic outage mitigation', 'Open-source community leader', 'Eagerness to pioneer new AI paradigms'],
-      optimalWorkEnvironment: 'Fast-paced AI development teams building cutting-edge agentic workflows and real-time systems.',
-      questionsAnswers: {
-        'Work Leadership Style': 'Pioneering, collaborative, and hands-on architectural leadership.',
-        'Conflict Vector': 'Resolves engineering debates through rapid prototyping and empirical benchmark tests.',
-        'Crisis Temperament': 'Switches instantly to fail-safe cached states and resolves production bottlenecks with minimal disruption.'
+      innerSelfAttributes: {
+        compassionGravityScore: 100,
+        authenticConvictionScore: 99,
+        resilientIntegrityScore: 100,
+        visionaryPalaceScore: 99,
+        unshakablePurposeScore: 100
       },
-      generatedAt: new Date(Date.now() - 86400000 * 1).toISOString()
+      lifesPalaceArchitecture: {
+        foundationLifeEndeavors: 'Forged in real-world perseverance, deep human observation, and relentless commitment to building lasting platforms.',
+        compassionFuelDescription: 'Compassion is the foundational mortar that binds every system together, turning cold technology into an uplifting human sanctuary.',
+        truestPotentialManifesto: 'To lead a global movement that replaces adversarial workplace dynamics with lifelong mutual respect, honor, and continuous growth.'
+      },
+      unseenCallingOpportunities: [
+        {
+          title: 'Global Civility & Human Potential Ambassador',
+          reasoning: 'Your unique ability to articulate the dignity of human work positions you to lead international symposiums on the future of ethical labor.',
+          whyPreviouslyUnseen: 'Often obscured by day-to-day technical execution, yet your spoken word carries profound moral authority.',
+          actionableFirstStep: 'Author the foundational Mind Your Manners Civility Manifesto for Fortune 500 boardrooms.'
+        },
+        {
+          title: 'Venture Architect for Ethical AI & Autonomous Systems',
+          reasoning: 'You possess the rare dual intuition of engineering rigorous technical architectures while preserving human warmth.',
+          whyPreviouslyUnseen: 'Most AI leaders prioritize speed over human dignity; your synthesis creates a new category of technology.',
+          actionableFirstStep: 'Expand the patent-ready T.H.I.S. Truest Grade scoring engine into enterprise education.'
+        }
+      ],
+      keyStrengths: [
+        'Unshakable Moral Compass',
+        'Palace-Building Craftsmanship',
+        'Profound Compassionate Gravity',
+        'Enduring Resilience Under Fire'
+      ],
+      candidateReflectivePitch: '"I am a pioneer who transforms adversity into enduring architecture. My life is dedicated to building systems where compassion and excellence elevate humanity."',
+      evaluatedAt: new Date().toISOString()
     },
-    submission: {
-      jobId: 'job-dev-03',
-      bgCheckConsented: true,
-      bgCheckSignedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-      bgCheckSsnLast4: '2209',
-      ethicsAnswers: {
-        'ethics_0': 'We enforce client-side PII scrubbing and deploy self-hosted model gateway proxies to guarantee no sensitive data touches vendor training logs.',
-        'ethics_1': 'Open-source licenses must be respected strictly. Code generation tools should augment developer velocity while preserving architectural integrity.'
-      },
-      etiquetteAnswers: {
-        'etiquette_0': 'I translate technical debt into business metrics like latency reduction, cost savings, and feature delivery velocity.',
-        'etiquette_1': 'Code reviews must focus on code quality, security standards, and scalability rather than stylistic preferences.'
-      },
-      mannersAnswers: {
-        'manners_0': 'I highlight what was done well first, explain the architectural rationale for suggested changes, and offer pair-programming support.',
-        'manners_1': 'I openly admit design flaws, document lessons learned, and refactor swiftly without ego.'
-      },
-      toneAudioTranscript: 'In a production outage, I stay calm, focus on rolling back to the last known stable state, and coordinate clear status updates for stakeholders every 15 minutes.',
-      toneAudioDurationSec: 30,
-      pressureVideoTranscript: 'Database latency spike during live presentation: I instantly switch traffic to our cached read-replicas, ping the database team, and keep the presentation moving seamlessly on cached state.',
-      pressureVideoDurationSec: 38,
-      motivationVideoTranscript: 'My passion is building tools that empower developers and solve real-world automation challenges with elegance.',
-      motivationVideoDurationSec: 32,
-      submittedAt: new Date(Date.now() - 86400000 * 1).toISOString()
-    },
-    evaluation: {
-      civilityScore: 92,
-      toneScore: 90,
-      ethicsScore: 93,
-      pressureScore: 94,
-      driveScore: 91,
-      overallSummary: 'Staff-level AI architect with impressive crisis management instincts, clean communication skills, and top technical credentials.',
-      toneEvaluation: 'Steady, pragmatic vocal demeanor during crisis simulations.',
-      pressureEvaluation: 'Fast, pragmatic problem solving during live customer presentation degradation.',
-      ethicsEvaluation: 'Strong focus on AI privacy controls and data leakage prevention.',
-      driveEvaluation: 'High intrinsic motivation to craft enduring software.',
-      keyStrengths: ['AI Systems Architecture', 'Rapid Crisis Triage', 'Open Source Leader'],
-      potentialRisks: ['May require high compensation package'],
-      recommendationTier: 'Strong Fit',
-      evaluatedAt: new Date(Date.now() - 86400000 * 1).toISOString()
-    }
+    motivationVideoTranscript: 'My driving force is to leave this world better than I found it, providing millions of people with a pathway to dignified work and lifelong fulfillment.',
+    motivationVideoDurationSec: 40,
+    motivationVideoUrl: '',
+    submittedAt: new Date().toISOString()
+  },
+  evaluation: {
+    civilityScore: 98.6,
+    toneScore: 98.4,
+    ethicsScore: 100,
+    pressureScore: 98.8,
+    driveScore: 99.5,
+    overallSummary: 'Pioneer Benchmark: Exemplifies supreme ethical alignment, calm sovereign composure, and unmatched visionary drive.',
+    toneEvaluation: 'Measured, warm, and diplomatically resonant under all conversational contexts.',
+    pressureEvaluation: 'Zero panic kinesic baseline; instantly establishes calm structural command.',
+    ethicsEvaluation: 'Absolute 100/100 integrity standard with uncompromising adherence to human dignity.',
+    driveEvaluation: 'Visionary pioneer motivation fueled by genuine compassion and generational ambition.',
+    keyStrengths: [
+      'Pioneer Sovereign Leadership',
+      'Deep Compassion & High-EQ Gravity',
+      'Systems Architecture Mastery',
+      'Unflinching Ethical Resilience'
+    ],
+    potentialRisks: [],
+    recommendationTier: 'Top Prospect',
+    evaluatedAt: new Date().toISOString()
   }
-];
+};
+
+export const INITIAL_CANDIDATES: CandidateProfile[] = [];
 
 export const INITIAL_TALENT_RADAR_SIGNALS: TalentRadarSignal[] = [
   {
     id: 'signal-01',
     platform: 'Competitor Watch',
     candidateName: 'Dr. Sarah Jenkins',
-    currentCompany: 'Apex Security Systems',
+    currentCompany: 'The Future Corp.',
     roleTitle: 'VP of AI Threat Intelligence',
-    signalDescription: 'Apex Security recently announced organizational restructuring. Sarah updated her profile status to "Open to Strategic Advisory & Executive Leadership".',
+    signalDescription: 'The Future Corp. recently announced organizational restructuring. Sarah updated her profile status to "Open to Strategic Advisory & Executive Leadership".',
     switchLikelihood: 88,
     timestamp: '2 hours ago',
     suggestedAction: 'Send Outbound Executive Civility Invitation'
@@ -425,4 +392,284 @@ export const INITIAL_TALENT_RADAR_SIGNALS: TalentRadarSignal[] = [
     suggestedAction: 'Trigger Outbound Scout for Seattle Region'
   }
 ];
+
+export const INITIAL_EMPLOYEE_JOURNEYS: import('../types').EmployeeJourneyRecord[] = [
+  {
+    id: 'emp-001',
+    employeeName: 'Jordan Taylor',
+    email: 'jordan.taylor@mindyourmanners.io',
+    role: 'Staff AI Systems Architect',
+    department: 'Engineering & AI Ethics',
+    hireDate: '2025-03-15',
+    certificationLevel: 'Senior Ethics Certified',
+    overallCurrentScore: 94,
+    lastAssessedAt: '2026-07-10',
+    assignedRefresherModules: [
+      'Q3 2026 De-escalation Under Live Outage Pressure',
+      'AI Privacy & Data Leakage Prevention 2026'
+    ],
+    scorecardHistory: [
+      {
+        id: 'sc-101',
+        employeeId: 'emp-001',
+        employeeName: 'Jordan Taylor',
+        evaluationDate: '2025-03-15',
+        assessmentType: 'Baseline Hire',
+        civilityScore: 82,
+        toneScore: 80,
+        ethicsScore: 86,
+        pressureScore: 81,
+        driveScore: 83,
+        overallScore: 82,
+        deltaImprovementPercent: 0,
+        managerNotes: 'Strong initial technical foundation; baseline composure during crisis interview was solid.',
+        keyImprovements: ['Initial Civility Onboarding', 'Ethics Protocol Familiarization'],
+        focusAreasForNextQuarter: ['Vocal Tone Moderation during Live Incident Outages'],
+        completedModulesCount: 1,
+        status: 'verified'
+      },
+      {
+        id: 'sc-102',
+        employeeId: 'emp-001',
+        employeeName: 'Jordan Taylor',
+        evaluationDate: '2025-10-12',
+        assessmentType: 'Q3 Review',
+        civilityScore: 88,
+        toneScore: 86,
+        ethicsScore: 91,
+        pressureScore: 87,
+        driveScore: 89,
+        overallScore: 88,
+        deltaImprovementPercent: 7,
+        managerNotes: 'Demonstrated notable composure during production database latency incident. Vocal tone stayed calm and objective.',
+        keyImprovements: ['Crisis Tone Control (+6)', 'Team De-escalation'],
+        focusAreasForNextQuarter: ['Cross-functional Ethics Mentorship'],
+        completedModulesCount: 3,
+        status: 'verified'
+      },
+      {
+        id: 'sc-103',
+        employeeId: 'emp-001',
+        employeeName: 'Jordan Taylor',
+        evaluationDate: '2026-07-10',
+        assessmentType: 'Q2 Review',
+        civilityScore: 94,
+        toneScore: 93,
+        ethicsScore: 97,
+        pressureScore: 92,
+        driveScore: 95,
+        overallScore: 94,
+        deltaImprovementPercent: 7,
+        managerNotes: 'Exceptional journey growth! Spearheaded AI safety gateway proxies and maintains near-perfect composure scores.',
+        keyImprovements: ['AI Safety Protocols', 'Airtight Crisis Composure', 'Leadership Voice'],
+        focusAreasForNextQuarter: ['Executive Board Communication'],
+        completedModulesCount: 6,
+        status: 'verified'
+      }
+    ]
+  },
+  {
+    id: 'emp-002',
+    employeeName: 'Alex Mercer',
+    email: 'alex.mercer@mindyourmanners.io',
+    role: 'Senior Ethics Compliance Officer',
+    department: 'Legal & Regulatory Affairs',
+    hireDate: '2025-06-01',
+    certificationLevel: 'Master Ambassador',
+    overallCurrentScore: 96,
+    lastAssessedAt: '2026-06-20',
+    assignedRefresherModules: [
+      '2026 T.H.I.S. Compliance & Protocol Guidelines'
+    ],
+    scorecardHistory: [
+      {
+        id: 'sc-201',
+        employeeId: 'emp-002',
+        employeeName: 'Alex Mercer',
+        evaluationDate: '2025-06-01',
+        assessmentType: 'Baseline Hire',
+        civilityScore: 85,
+        toneScore: 84,
+        ethicsScore: 90,
+        pressureScore: 82,
+        driveScore: 84,
+        overallScore: 85,
+        deltaImprovementPercent: 0,
+        managerNotes: 'Legal acumen is top tier; baseline manners and tone during challenging scenarios was high.',
+        keyImprovements: ['T.H.I.S. Audit Training'],
+        focusAreasForNextQuarter: ['High-Stress Executive Deposition Simulations'],
+        completedModulesCount: 1,
+        status: 'verified'
+      },
+      {
+        id: 'sc-202',
+        employeeId: 'emp-002',
+        employeeName: 'Alex Mercer',
+        evaluationDate: '2026-06-20',
+        assessmentType: 'Annual Refresher',
+        civilityScore: 96,
+        toneScore: 95,
+        ethicsScore: 99,
+        pressureScore: 94,
+        driveScore: 93,
+        overallScore: 96,
+        deltaImprovementPercent: 13,
+        managerNotes: 'Mastery level performance across all regulatory and interpersonal dimensions.',
+        keyImprovements: ['Regulatory Precision', 'Unflappable Deposition Demeanor'],
+        focusAreasForNextQuarter: ['Company-wide Civility Workshops'],
+        completedModulesCount: 5,
+        status: 'verified'
+      }
+    ]
+  },
+  {
+    id: 'emp-003',
+    employeeName: 'Elena Vance',
+    email: 'elena.vance@mindyourmanners.io',
+    role: 'Lead Customer Relations Director',
+    department: 'Client Success & Relations',
+    hireDate: '2025-09-10',
+    certificationLevel: 'Executive Crisis Master',
+    overallCurrentScore: 92,
+    lastAssessedAt: '2026-05-15',
+    assignedRefresherModules: [
+      'Q3 Enterprise Customer Incident Escalations'
+    ],
+    scorecardHistory: [
+      {
+        id: 'sc-301',
+        employeeId: 'emp-003',
+        employeeName: 'Elena Vance',
+        evaluationDate: '2025-09-10',
+        assessmentType: 'Baseline Hire',
+        civilityScore: 78,
+        toneScore: 76,
+        ethicsScore: 82,
+        pressureScore: 75,
+        driveScore: 79,
+        overallScore: 78,
+        deltaImprovementPercent: 0,
+        managerNotes: 'Strong customer empathy; initial pressure response showed slight hesitation when escalated.',
+        keyImprovements: ['Customer Success Onboarding'],
+        focusAreasForNextQuarter: ['Escalated Client Conflict De-escalation'],
+        completedModulesCount: 1,
+        status: 'verified'
+      },
+      {
+        id: 'sc-302',
+        employeeId: 'emp-003',
+        employeeName: 'Elena Vance',
+        evaluationDate: '2026-05-15',
+        assessmentType: 'Q1 Review',
+        civilityScore: 92,
+        toneScore: 91,
+        ethicsScore: 94,
+        pressureScore: 90,
+        driveScore: 93,
+        overallScore: 92,
+        deltaImprovementPercent: 18,
+        managerNotes: 'Outstanding progress! Elena has transformed client dispute resolution into a key corporate strength.',
+        keyImprovements: ['Active De-escalation Mastery (+15)', 'Calm Vocal Cadence'],
+        focusAreasForNextQuarter: ['Mentoring Junior Client Leads'],
+        completedModulesCount: 4,
+        status: 'verified'
+      }
+    ]
+  }
+];
+
+export const INITIAL_RECENT_HIRES_FEED: import('../types').RecentHireFeedItem[] = [
+  {
+    id: 'hire-feed-01',
+    candidateName: 'Sarah Connor, CISSP',
+    candidateRole: 'Senior Cybersecurity Threat Operations Engineer',
+    previousCompany: 'The Future Corp.',
+    locationCity: 'Austin, TX',
+    linkedinUrl: 'https://linkedin.com/in/sarah-connor-cyber',
+    hiredDate: '2026-08-15',
+    civilityScore: 98,
+    hiredForJobTitle: 'Senior Cybersecurity Threat Operations Engineer',
+    scoutedBy: 'Outbound LinkedIn Scout (Recruiter OAuth)',
+    keyStrengthBadge: 'Zero Trust Crisis Diplomat • Truest Grade (98/100)',
+    likesCount: 14,
+    likedByUsers: ['Recruiter Scout', 'Chief Talent Officer'],
+    comments: [
+      {
+        id: 'c-01',
+        authorName: 'Sarah Lin',
+        authorRole: 'VP of Cyber Engineering',
+        text: 'Extremely impressed by Sarah’s unflappable vocal cadence during 2 AM threat triage drills!',
+        timestamp: '1 day ago'
+      },
+      {
+        id: 'c-02',
+        authorName: 'Marcus Vance',
+        authorRole: 'Chief Talent Officer',
+        text: 'Scouted directly via LinkedIn Open to Work network. Seamless onboarding complete!',
+        timestamp: '18 hours ago'
+      }
+    ],
+    announcementText: '🎉 Official Hire Announcement: Sarah Connor has joined our cybersecurity operations unit after excelling in live vocal de-escalation and crisis management scenarios!',
+    timestamp: new Date(Date.now() - 86400000 * 1.5).toISOString()
+  },
+  {
+    id: 'hire-feed-02',
+    candidateName: 'David Chen',
+    candidateRole: 'Head of Regulatory Audit & Corporate Compliance',
+    previousCompany: 'Metropolitan Financial Group',
+    locationCity: 'New York, NY',
+    linkedinUrl: 'https://linkedin.com/in/david-chen-compliance',
+    hiredDate: '2026-08-12',
+    civilityScore: 96,
+    hiredForJobTitle: 'Corporate Compliance & Operations Lead',
+    scoutedBy: 'LinkedIn Executive Talent Radar',
+    keyStrengthBadge: 'Ethical Sentinel • Master Auditor',
+    likesCount: 19,
+    likedByUsers: ['Executive Committee', 'Legal Compliance Lead'],
+    comments: [
+      {
+        id: 'c-03',
+        authorName: 'Alex Mercer',
+        authorRole: 'Senior Ethics Officer',
+        text: 'Spotless regulatory audit history. Thrilled to have David leading our compliance team!',
+        timestamp: '3 days ago'
+      }
+    ],
+    announcementText: '💼 Executive Scout Success: David Chen was imported from LinkedIn and scored 96% on T.H.I.S. ethical integrity & diplomatic conflict resolution!',
+    timestamp: new Date(Date.now() - 86400000 * 4).toISOString()
+  },
+  {
+    id: 'hire-feed-03',
+    candidateName: 'Rachel Miller',
+    candidateRole: 'Lead AI & Full-Stack Systems Architect',
+    previousCompany: 'Frontier AI Systems',
+    locationCity: 'Seattle, WA',
+    linkedinUrl: 'https://linkedin.com/in/rachel-miller-ai',
+    hiredDate: '2026-08-08',
+    civilityScore: 95,
+    hiredForJobTitle: 'Lead AI & Full-Stack Systems Architect',
+    scoutedBy: 'LinkedIn Outbound Resume Scout',
+    keyStrengthBadge: 'Adaptive Catalyst • Open Source Contributor',
+    likesCount: 27,
+    likedByUsers: ['Engineering Lead', 'Recruiter Scout'],
+    comments: [
+      {
+        id: 'c-04',
+        authorName: 'Jordan Taylor',
+        authorRole: 'Staff Architect',
+        text: 'Rachel brings 2,500+ GitHub stars on distributed AI orchestration. Huge win for engineering!',
+        timestamp: '6 days ago'
+      }
+    ],
+    announcementText: '🚀 High Velocity Hire: Rachel Miller accepted our offer for Lead AI Systems Architect after passing our live outage pressure simulation with top honors!',
+    timestamp: new Date(Date.now() - 86400000 * 8).toISOString()
+  }
+];
+
+export const INITIAL_COMPANY_ADS: import('../types').CompanyJobAd[] = [];
+
+export const INITIAL_AD_APPLICATIONS: import('../types').AdApplication[] = [];
+
+export const INITIAL_COMMISSION_INVOICES: import('../types').CommissionInvoiceRecord[] = [];
+
 

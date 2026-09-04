@@ -142,7 +142,7 @@ export const ArchetypeProjectionCard: React.FC<ArchetypeProjectionCardProps> = (
         <div className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-800/40 space-y-2.5">
           <h4 className="text-xs font-mono text-amber-400/90 uppercase tracking-wider">Key Behavioral Attributes</h4>
           <ul className="space-y-1.5">
-            {archetype.keyBehavioralTraits.map((trait, idx) => (
+            {(archetype.keyBehavioralTraits || []).map((trait, idx) => (
               <li key={idx} className="flex items-start gap-2 text-xs text-neutral-300">
                 <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                 <span>{trait}</span>
