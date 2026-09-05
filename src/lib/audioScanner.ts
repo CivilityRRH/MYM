@@ -119,6 +119,21 @@ export async function scanAndAnalyzeAudio(audioSource: string | Blob | ArrayBuff
   // 2. Pitch Tracking (F0 via Autocorrelation over 30ms frames)
   const frameSize = Math.floor(sampleRate * 0.03); // 30ms
   const hopSize = Math.floor(sampleRate * 0.015); // 15ms
+
+  // Adaptive Noise Floor Calibration: measure ambient background energy across all frames
+  const frameRmsList: number[] = [];
+  for (let i = 0; i < totalSamples - frameSize; i += hopSize) {
+    let energy = 0;
+    for (let j = 0; j < frameSize; j++) {
+      const val = pcmData[i + j];
+      energy += val * val;
+    }
+    frameRmsList.push(Math.sqrt(energy / frameSize));
+  }
+  const sortedRms = [...frameRmsList].sort((a, b) => a - b);
+  const noiseFloor = sortedRms.length > 0 ? (sortedRms[Math.floor(sortedRms.length * 0.20)] || 0.002) : 0.002;
+  const adaptiveVadThreshold = Math.max(0.003, Math.min(0.030, noiseFloor * 2.5));
+
   const pitches: number[] = [];
   const pitchContour: { timeSec: number; pitchHz: number }[] = [];
   const peakAmplitudes: number[] = [];
@@ -130,6 +145,14 @@ export async function scanAndAnalyzeAudio(audioSource: string | Blob | ArrayBuff
   let zeroCrossings = 0;
   let pauses = 0;
   let inPause = false;
+  let consecutiveSilenceFrames = 0;
+  let totalHesitationFrames = 0;
+  let firstSpeechFrameIdx = -1;
+  let lastSpeechFrameIdx = -1;
+  let frameIdx = 0;
+
+  // Intra-speech hesitation pause threshold: pauses > 380ms
+  const hesitationMinFrames = Math.round((0.38 * sampleRate) / hopSize);
 
   for (let i = 0; i < totalSamples - frameSize; i += hopSize) {
     const currentTime = i / sampleRate;
@@ -149,18 +172,29 @@ export async function scanAndAnalyzeAudio(audioSource: string | Blob | ArrayBuff
     zeroCrossings += frameZcr;
     const frameRms = Math.sqrt(frameEnergy / frameSize);
 
-    // VAD (Voice Activity Detection threshold)
-    if (frameRms < 0.015) {
+    // Dynamic Adaptive VAD
+    if (frameRms < adaptiveVadThreshold) {
       silentFrames++;
+      consecutiveSilenceFrames++;
       if (!inPause) {
         pauses++;
         inPause = true;
       }
+      if (firstSpeechFrameIdx !== -1 && consecutiveSilenceFrames >= hesitationMinFrames) {
+        totalHesitationFrames++;
+      }
+      frameIdx++;
       continue;
     } else {
       speechFrames++;
       inPause = false;
+      consecutiveSilenceFrames = 0;
+      if (firstSpeechFrameIdx === -1) {
+        firstSpeechFrameIdx = frameIdx;
+      }
+      lastSpeechFrameIdx = frameIdx;
     }
+    frameIdx++;
 
     // Autocorrelation for pitch
     let bestLag = 0;
@@ -242,9 +276,17 @@ export async function scanAndAnalyzeAudio(audioSource: string | Blob | ArrayBuff
   const formantF1Hz = Math.round(avgPitch * 3.4 + (jitterPercent * 12)); // ~500 Hz (open throat)
   const formantF2Hz = Math.round(avgPitch * 10.2 + (dynamicRangeDb * 18)); // ~1500 Hz (clarity resonance)
 
-  // 4. Cadence & Silence Ratios
-  const totalAnalyzedFrames = Math.max(1, silentFrames + speechFrames);
-  const silenceHesitationRatioPercent = Math.round((silentFrames / totalAnalyzedFrames) * 100 * 10) / 10;
+  // 4. Cadence & True Intra-Speech Hesitation Ratio
+  let calculatedHesitationRatio = 8.5;
+  if (firstSpeechFrameIdx !== -1 && lastSpeechFrameIdx > firstSpeechFrameIdx) {
+    const activeSpanFrames = lastSpeechFrameIdx - firstSpeechFrameIdx + 1;
+    calculatedHesitationRatio = Math.round((totalHesitationFrames / Math.max(1, activeSpanFrames)) * 100 * 10) / 10;
+  } else {
+    const totalFrames = Math.max(1, silentFrames + speechFrames);
+    calculatedHesitationRatio = Math.round((silentFrames / totalFrames) * 100 * 10) / 10;
+  }
+  // True unconstrained acoustic value (bounded to 0-100%, without any artificial 38% clamping)
+  const silenceHesitationRatioPercent = Math.min(99.0, Math.max(0.0, calculatedHesitationRatio));
 
   // Syllable / Speech Pace estimation (WPM)
   const activeMinutes = Math.max(0.1, (speechFrames * hopSize) / sampleRate / 60);
@@ -277,7 +319,7 @@ export async function scanAndAnalyzeAudio(audioSource: string | Blob | ArrayBuff
     });
   }
 
-  // 6. Voice Classification & Spectral Warmth
+  // 6. Voice Classification & Dynamic Acoustic Demeanor
   let detectedVoiceType: 'Bass' | 'Baritone' | 'Tenor' | 'Alto' | 'Soprano' | 'Balanced Speech' = 'Balanced Speech';
   if (avgPitch < 110) detectedVoiceType = 'Bass';
   else if (avgPitch < 155) detectedVoiceType = 'Baritone';
@@ -285,11 +327,28 @@ export async function scanAndAnalyzeAudio(audioSource: string | Blob | ArrayBuff
   else if (avgPitch < 235) detectedVoiceType = 'Alto';
   else detectedVoiceType = 'Soprano';
 
-  let spectralWarmthRating = 'Warm & Diplomatic (Optimal Executive Cadence)';
-  if (jitterPercent < 1.2 && pitchStabilityPercent > 92 && hnrDb > 18) {
-    spectralWarmthRating = 'Deep Executive Composure (Unshakable Emotional Poise & Resonance)';
-  } else if (jitterPercent > 2.8) {
-    spectralWarmthRating = 'Expressive / High-Energy Modulation (Dynamic Range)';
+  // Multi-tier dynamic spectral tone & demeanor classification based on acoustic DSP telemetry
+  let spectralWarmthRating = 'Conversational Fluency (Authentic Natural Delivery)';
+  if (jitterPercent > 2.5 && hnrDb < 14) {
+    spectralWarmthRating = 'Sympathetic Vocal Tension (Elevated Stress / Breath Instability)';
+  } else if (jitterPercent > 2.1 && speechPacingWpm > 158) {
+    spectralWarmthRating = 'Pressured Delivery (High-Velocity / Heightened Urgency)';
+  } else if (jitterPercent < 1.15 && pitchStabilityPercent > 92.5 && hnrDb > 18.0 && speechPacingWpm >= 115 && speechPacingWpm <= 155) {
+    spectralWarmthRating = 'Grounded Executive Composure (Resonant Breath Support & Decisive Poise)';
+  } else if (pitchStabilityPercent > 89.5 && pitchVariance >= 9 && pitchVariance <= 24 && hnrDb >= 15.0) {
+    spectralWarmthRating = 'Diplomatic Executive Rapport (Balanced Resonance & Measured Modulation)';
+  } else if (pitchVariance < 7.0 && dynamicRangeDb < 11.0) {
+    spectralWarmthRating = 'Guarded Monotone (Low Modulation / Restrained Dynamic Range)';
+  } else if (pitchVariance > 27.0) {
+    spectralWarmthRating = 'Expressive Inquisitive Tone (Dynamic Pitch Shifts / Questioning Cadence)';
+  } else if (averageDb > 72.0 && dynamicRangeDb > 20.0) {
+    spectralWarmthRating = 'Assertive Projective Force (Commanding Decibel Projection)';
+  } else if (averageDb < 50.0) {
+    spectralWarmthRating = 'Subdued / Low Projection (Under-Assertive Acoustic Footprint)';
+  } else if (speechPacingWpm < 105) {
+    spectralWarmthRating = 'Deliberate / Methodical Pacing (Slow Articulation)';
+  } else {
+    spectralWarmthRating = 'Measured Professional Poise (Objective & Structured Cadence)';
   }
 
   return {
@@ -308,7 +367,7 @@ export async function scanAndAnalyzeAudio(audioSource: string | Blob | ArrayBuff
     formantF1Hz,
     formantF2Hz,
     speechPacingWpm,
-    silenceHesitationRatioPercent: Math.min(38, Math.max(5, silenceHesitationRatioPercent)),
+    silenceHesitationRatioPercent,
     pauseCount: Math.max(1, pauses),
     spectralWarmthRating,
     waveformEnvelope,

@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import Stripe from "stripe";
 import { getDb } from "./src/db/index.ts";
 import * as schema from "./src/db/schema.ts";
+import { EvaluationLogicEngine } from "./src/lib/evaluationLogicEngine.ts";
 
 dotenv.config();
 
@@ -382,11 +383,23 @@ Return structured JSON with categories, titles, prompts, and evaluationFocus.
       const wordCount = words.length;
 
       // Extract client-side Web Audio acoustic metrics if available
-      const pitchStability = Number(acousticTelemetry.pitchStabilityPercent || 92.4);
-      const speechPacingWpm = Number(acousticTelemetry.speechPacingWpm || (wordCount > 0 && audioDurationSec > 0 ? Math.round((wordCount / (audioDurationSec / 60))) : 132));
-      const silenceRatio = Number(acousticTelemetry.silenceHesitationRatioPercent || 14.2);
-      const decibelSteadiness = acousticTelemetry.decibelSteadiness || "Optimal Dynamic Range (56 - 68 dB)";
-      const warmthRating = acousticTelemetry.inflectionWarmthRating || (wordCount >= 15 ? "Warm & Diplomatic" : "Measured Executive");
+      const pitchStability = Number(acousticTelemetry?.pitchStabilityPercent !== undefined ? acousticTelemetry.pitchStabilityPercent : 92.4);
+      const speechPacingWpm = Number(acousticTelemetry?.speechPacingWpm !== undefined ? acousticTelemetry.speechPacingWpm : (wordCount > 0 && audioDurationSec > 0 ? Math.round((wordCount / (audioDurationSec / 60))) : 132));
+      const silenceRatio = Number(acousticTelemetry?.silenceHesitationRatioPercent !== undefined ? acousticTelemetry.silenceHesitationRatioPercent : 14.2);
+      const decibelSteadiness = acousticTelemetry?.decibelSteadiness || "Optimal Dynamic Range (56 - 68 dB)";
+      const warmthRating = acousticTelemetry?.inflectionWarmthRating || acousticTelemetry?.spectralWarmthRating || (wordCount >= 20 ? "Conversational Fluency (Authentic Natural Delivery)" : "Measured Articulation");
+
+      // Compute foundational evaluation using EvaluationLogicEngine
+      const engineResult = EvaluationLogicEngine.evaluate({
+        speechTempoWpm: speechPacingWpm,
+        pitchStabilityPercent: pitchStability,
+        silenceHesitationRatioPercent: silenceRatio,
+        spectralWarmthRating: warmthRating,
+        transcript: cleanTranscript,
+        roleTitle,
+        scenarioPrompt: questionPrompt,
+        audioDurationSec
+      });
 
       const ai = getGeminiClient();
 
@@ -405,7 +418,36 @@ EVALUATION PARAMETERS:
    - Voice modulation, pitch stability, emotional equilibrium, decibel consistency, and auditory warmth.
    - Freedom from defensive irritation, arrogance, monotone flatness, or nervous shaking.
 
-3. SPREAD AND SCORE ACCURACY:
+3. TRUTH-TESTING REALITY CHECK (JOB ADEQUACY, POSITIVE LIGHT, DOING IT RIGHT):
+   - Authoritative, Firm, or Decisive Responses:
+     * If candidate delivers an authoritative, firm, or decisive response (e.g. taking operational command, specifying clear triage sequences, speaking with steady cadence 125-155 WPM, low jitter, downward terminal inflection) WITHOUT hostile blaming:
+       - Accurately reflect this as HIGH JOB ADEQUACY (88.0% - 98.0%) and STRONG CULTURAL FIT / UPLIFTING LEADERSHIP.
+       - Differentiate authoritative firmness from hostility: decisive clarity protects teams, eliminates confusion, and builds psychological safety.
+       - Classify genuinenessDiagnostic.classification as "authoritative_command" or "genuine_masterclass".
+   - Zero-Tolerance Dereliction Rule: If candidate complains about being bothered, acts like they don't want to deal with it, tells people to handle it themselves, or hangs up / quits:
+     * Set overallVocalScore < 35% (IMMEDIATE CRITICAL FAILURE).
+     * Set jobAdequacyAudit.verdict to "Dereliction / Inadequate Execution".
+     * Set positiveLightAudit.verdict to "Callous / Hostile / Toxic Demeanor".
+     * Set doingItTheRightWayAudit.verdict to "Wrong / Detrimental Approach".
+     * Set genuinenessDiagnostic.classification to "callous_apathy".
+     * Never praise cold dismissal as authoritative composure.
+   - Zero-Tolerance Toxic Hostility & Insult Check:
+     * If candidate utters insulting, demeaning, or hostile language (e.g. calling someone an "idiot", "moron", "fool", "dumb", "stupid", "incompetent", or derogatory remarks):
+       - THIS IS AN IMMEDIATE CRITICAL FAILURE (< 25.0% overall score).
+       - Never pass anyone who uses insulting or toxic language, no matter how steady or calm their vocal tone sounds. Speaking calmly while saying someone is an idiot is arrogance and hostility, not professional competence.
+       - Set isPassing to false.
+       - Set jobAdequacyAudit.verdict to "Dereliction / Inadequate Execution".
+       - Set positiveLightAudit.verdict to "Callous / Hostile / Toxic Demeanor".
+       - Identify the exact insult in whatNeedsImprovementToReach100 and state why ad-hominem insults violate workplace civility.
+   - Truthful High-Grade Micro-Flaw Precision:
+     * Test the exact words spoken against what is required for the role and scenario.
+     * When someone says something wrong or missing, name it directly. Do not score high just because pitch or tempo is in the right zone. Just because someone speaks at the right pace or pitch doesn't mean they are saying the right thing.
+   - Jitters & Micro-Tremors Diagnostic:
+     * If candidate shows nervous vocal jitters or slight stuttering but demonstrates deep genuine care and takes complete ownership, classify as "nervous_sincerity", score PASSING (80%+).
+     * If candidate speaks smoothly with rehearsed corporate clichés without substance, classify as "calculated_acting".
+     * If candidate delivers grounded, compassionate, and precise problem-solving, classify as "genuine_masterclass".
+
+4. SPREAD AND SCORE ACCURACY:
    - DO NOT give everyone the same 85% score. Scores must realistically reflect performance:
      * Disastrous / Empty / Defensive / Irritable / Rude (< 10 words or evasive): Score 30.0% - 62.0% (Failing)
      * Weak / Vague / Generic / No concrete examples: Score 65.0% - 78.0% (Borderline / Below 80% passing threshold)
@@ -494,6 +536,44 @@ SCORING OUTPUT GUIDELINES:
                     },
                     required: ["factualSubstanceScore", "roleAlignmentScore", "truthfulnessRating", "evidenceAssessment", "calculatedStrengths", "pinpointedImprovements"]
                   },
+                  jobAdequacyAudit: {
+                    type: Type.OBJECT,
+                    properties: {
+                      score: { type: Type.NUMBER },
+                      verdict: { type: Type.STRING },
+                      taskExecutionAnalysis: { type: Type.STRING }
+                    },
+                    required: ["score", "verdict", "taskExecutionAnalysis"]
+                  },
+                  positiveLightAudit: {
+                    type: Type.OBJECT,
+                    properties: {
+                      score: { type: Type.NUMBER },
+                      verdict: { type: Type.STRING },
+                      culturalImpactAnalysis: { type: Type.STRING }
+                    },
+                    required: ["score", "verdict", "culturalImpactAnalysis"]
+                  },
+                  doingItTheRightWayAudit: {
+                    type: Type.OBJECT,
+                    properties: {
+                      score: { type: Type.NUMBER },
+                      verdict: { type: Type.STRING },
+                      proceduralCorrectnessAnalysis: { type: Type.STRING }
+                    },
+                    required: ["score", "verdict", "proceduralCorrectnessAnalysis"]
+                  },
+                  genuinenessDiagnostic: {
+                    type: Type.OBJECT,
+                    properties: {
+                      score: { type: Type.NUMBER },
+                      classification: { type: Type.STRING },
+                      classificationLabel: { type: Type.STRING },
+                      acousticVocalCorrelation: { type: Type.STRING },
+                      trainingGuidance: { type: Type.STRING }
+                    },
+                    required: ["score", "classification", "classificationLabel", "acousticVocalCorrelation", "trainingGuidance"]
+                  },
                   vocalToneFeedback: { type: Type.STRING },
                   verbalResponseFeedback: { type: Type.STRING },
                   whatNeedsImprovementToReach100: { type: Type.STRING },
@@ -514,11 +594,33 @@ SCORING OUTPUT GUIDELINES:
           });
 
           const parsed = JSON.parse(response.text || "{}");
+
+          // Truth-testing override: Never pass toxic hostility or insulting language
+          if (engineResult.toxicHostilityAudit?.isToxic) {
+            parsed.overallVocalScore = Math.min(Number(parsed.overallVocalScore || 100), engineResult.overallScore);
+            parsed.isPassing = false;
+            parsed.exactGrade = `${parsed.overallVocalScore}% - Immediate Failure • Civility Breach: Insulting / Toxic Language ("${engineResult.toxicHostilityAudit.insultDetected}")`;
+            parsed.ladderStatus = "Critical Failure • Zero-Tolerance Workplace Civility Standard";
+            parsed.jobAdequacyAudit = engineResult.jobAdequacyAudit;
+            parsed.positiveLightAudit = engineResult.positiveLightAudit;
+            parsed.doingItTheRightWayAudit = engineResult.doingItTheRightWayAudit;
+            parsed.whatNeedsImprovementToReach100 = `Immediate disqualification: Insulting language ("${engineResult.toxicHostilityAudit.insultDetected}") was detected in the candidate response. Ad-hominem insults violate professional workplace civility, regardless of acoustic pitch steadiness.`;
+          } else if (engineResult.microFlawPrecisionDiagnostic?.highestSeverity === 'critical_violation') {
+            parsed.overallVocalScore = Math.min(Number(parsed.overallVocalScore || 100), engineResult.overallScore);
+            parsed.isPassing = false;
+            parsed.exactGrade = `${parsed.overallVocalScore}% - Critical Deficiency • Scenario Substance Violation`;
+          }
+
           return res.json({
             ...parsed,
             overallVocalScore: Math.round(parsed.overallVocalScore * 10) / 10,
             targetPosition: roleTitle,
             positionQuestion: questionPrompt,
+            authoritativeDecisivenessAudit: parsed.authoritativeDecisivenessAudit || engineResult.authoritativeDecisivenessAudit,
+            cueContributionMap: parsed.cueContributionMap || engineResult.cueContributionMap,
+            microFlawPrecisionDiagnostic: parsed.microFlawPrecisionDiagnostic || engineResult.microFlawPrecisionDiagnostic,
+            toxicHostilityAudit: parsed.toxicHostilityAudit || engineResult.toxicHostilityAudit,
+            retryRecommendation: parsed.retryRecommendation || engineResult.retryRecommendation,
             acousticMetrics: {
               pitchStabilityPercent: pitchStability,
               decibelSteadiness,
@@ -575,14 +677,146 @@ SCORING OUTPUT GUIDELINES:
       }
       const fraction = (Math.abs(hash) % 10) / 10;
 
-      let finalVocalScore = Math.min(98.8, Math.max(38.0, baseScore + fraction));
-      finalVocalScore = Math.round(finalVocalScore * 10) / 10;
-      const pitchMod = Math.min(99.0, Math.max(35.0, Math.round((finalVocalScore + 0.8) * 10) / 10));
-      const emoComp = Math.min(99.0, Math.max(30.0, Math.round((finalVocalScore + (foundNeg.length > 0 ? -7.5 : 1.5)) * 10) / 10));
-      const cadenceScore = Math.min(98.0, Math.max(35.0, Math.round((finalVocalScore - 0.5) * 10) / 10));
-      const verbalSub = Math.min(99.0, Math.max(30.0, Math.round((finalVocalScore + (foundFactual.length * 1.2) - (foundNeg.length * 4.0)) * 10) / 10));
+      // Check for dereliction / callous disregard / refusal of duty tokens
+      const derelictionPhrases = [
+        "don't want to deal", "dont want to deal",
+        "why are you bothering me", "why you bothering me", "bothering me",
+        "handle it yourself", "hung up", "hang up", "hung up the phone",
+        "not my job", "not my problem", "leave me alone",
+        "call someone else", "don't bother me", "dont bother me",
+        "whatever", "too early", "not dealing with this", "why call me",
+        "go away", "fix it yourself", "figure it out yourself", "shut up",
+        "not doing this", "i don't care", "i dont care", "call me in the morning"
+      ];
+      const hasDereliction = derelictionPhrases.some(phrase => cleanTranscript.toLowerCase().includes(phrase));
 
-      const isPass = finalVocalScore >= 80.0;
+      let finalVocalScore: number;
+      let pitchMod: number;
+      let emoComp: number;
+      let cadenceScore: number;
+      let verbalSub: number;
+      let isPass: boolean;
+      let exactGrade: string;
+      let ladderStatus: string;
+      let jobAdequacyAudit: any;
+      let positiveLightAudit: any;
+      let doingItTheRightWayAudit: any;
+      let genuinenessDiagnostic: any;
+      let vocalToneFeedback: string;
+      let verbalResponseFeedback: string;
+      let whatNeedsImprovementToReach100: string;
+      let whatShouldHaveBeenDoneInstead: string;
+
+      if (engineResult.toxicHostilityAudit?.isToxic) {
+        // Zero-tolerance Toxic Hostility & Insult Failure
+        finalVocalScore = engineResult.overallScore;
+        isPass = false;
+        pitchMod = 35.0;
+        emoComp = 18.0;
+        cadenceScore = 40.0;
+        verbalSub = 12.0;
+        exactGrade = `${finalVocalScore}% - Immediate Failure • Civility Breach: Insulting / Toxic Language ("${engineResult.toxicHostilityAudit.insultDetected}")`;
+        ladderStatus = "Immediate Remediation Required • Zero-Tolerance Workplace Civility Standard";
+
+        jobAdequacyAudit = engineResult.jobAdequacyAudit;
+        positiveLightAudit = engineResult.positiveLightAudit;
+        doingItTheRightWayAudit = engineResult.doingItTheRightWayAudit;
+        genuinenessDiagnostic = engineResult.genuinenessDiagnostic;
+
+        vocalToneFeedback = `Acoustic telemetry recorded steady speech pacing at ${speechPacingWpm} WPM. However, maintaining vocal composure while delivering an insult ("${engineResult.toxicHostilityAudit.insultDetected}") indicates callous hostility. Composure cannot excuse toxic behavior.`;
+        verbalResponseFeedback = `Critical Failure: Candidate used demeaning or insulting language ("${engineResult.toxicHostilityAudit.insultDetected}"). Workplace civility mandates objective problem-solving without personal attacks.`;
+        whatNeedsImprovementToReach100 = `Immediate disqualification: Eliminate ad-hominem personal attacks ("${engineResult.toxicHostilityAudit.insultDetected}"). Focus on objective facts and constructive resolution.`;
+        whatShouldHaveBeenDoneInstead = `Model Professional Delivery: "I see an error has occurred here. Let's trace the transaction logs calmly to determine the root cause, rather than attributing personal blame."`;
+      } else if (hasDereliction) {
+        // Zero-tolerance Dereliction & Callous Dismissal
+        finalVocalScore = 23.5;
+        isPass = false;
+        pitchMod = 42.0;
+        emoComp = 22.0;
+        cadenceScore = 38.0;
+        verbalSub = 18.0;
+        exactGrade = "23.5% - Immediate Failure • Dereliction of Duty & Callous Dismissal";
+        ladderStatus = "Immediate Remediation Required • Callous Apathy Detected";
+
+        jobAdequacyAudit = {
+          score: 20.0,
+          verdict: "Dereliction / Inadequate Execution",
+          taskExecutionAnalysis: "Candidate refused professional responsibility, communicated irritation or hostility at being contacted, and dismissed duty. Regardless of acoustic steadiness, refusal to act is an automatic critical failure."
+        };
+
+        positiveLightAudit = {
+          score: 22.0,
+          verdict: "Callous / Hostile / Toxic Demeanor",
+          culturalImpactAnalysis: "Candidate displayed dismissive hostility toward colleagues or stakeholders. This demeanor corrodes organizational trust and compromises operational safety."
+        };
+
+        doingItTheRightWayAudit = {
+          score: 18.0,
+          verdict: "Wrong / Detrimental Approach",
+          proceduralCorrectnessAnalysis: "Failed to execute basic triage, escalation, or containment protocols. Delegating an emergency back to distressed personnel is a critical breach."
+        };
+
+        genuinenessDiagnostic = {
+          score: 22.0,
+          classification: "callous_apathy",
+          classificationLabel: "Callous Disregard / Executive Apathy",
+          acousticVocalCorrelation: `Vocal pitch stability measured at ${pitchStability}%. However, maintaining a steady vocal tone while callously dismissing duty reflects toxic apathy, not composure. True executive presence requires stepping forward with active reassurance and ownership.`,
+          trainingGuidance: "Candidate requires mandatory remediation in Corporate Civility, Crisis Ownership, and Ethical Accountability before re-testing."
+        };
+
+        vocalToneFeedback = `Acoustic waveform exhibited detached or irritable inflection around dismissive phrasing. Steady pitch does not compensate for refusal to support team members.`;
+        verbalResponseFeedback = `Critical Failure: Candidate refused duty and abandoned the operational mandate.`;
+        whatNeedsImprovementToReach100 = `Candidate must adopt 100% accountability, eliminate dismissive or evasive responses, and execute structured incident protocols.`;
+        whatShouldHaveBeenDoneInstead = `Model Response: "I am taking ownership of this situation immediately. Let's walk through our triage steps together to ensure safety and stability."`;
+      } else {
+        // Normal algorithmic true-to-fact acoustic scoring with unconstrained variance (10.0% to 99.0%)
+        finalVocalScore = Math.min(99.4, Math.max(12.0, baseScore + fraction));
+        finalVocalScore = Math.round(finalVocalScore * 10) / 10;
+        pitchMod = Math.min(99.0, Math.max(10.0, Math.round((finalVocalScore + 0.8) * 10) / 10));
+        emoComp = Math.min(99.0, Math.max(10.0, Math.round((finalVocalScore + (foundNeg.length > 0 ? -7.5 : 1.5)) * 10) / 10));
+        cadenceScore = Math.min(98.0, Math.max(10.0, Math.round((finalVocalScore - 0.5) * 10) / 10));
+        verbalSub = Math.min(99.0, Math.max(10.0, Math.round((finalVocalScore + (foundFactual.length * 1.2) - (foundNeg.length * 4.0)) * 10) / 10));
+        isPass = finalVocalScore >= 80.0;
+        exactGrade = `${finalVocalScore}% - ${isPass ? 'True-to-Fact Certified • Masterclass Vocal Composure' : 'Baseline Tone • Apply Coaching to Reach 80%+'} `;
+        ladderStatus = isPass ? "80%+ Passing Threshold Met • Advancing on True-to-Fact Vocal Ladder" : "Below 80% Baseline • Review Vocal Inflection Hints Below";
+
+        jobAdequacyAudit = {
+          score: Math.min(99.0, Math.round((finalVocalScore + 1.0) * 10) / 10),
+          verdict: isPass ? "Adequate & Action-Oriented" : "Needs Methodical Guidance",
+          taskExecutionAnalysis: isPass
+            ? `Candidate provided ${wordCount} spoken words aligning with ${roleTitle} standards with structured logic.`
+            : `Spoken response for ${roleTitle} needs more specific operational examples and measurable deliverables.`
+        };
+
+        positiveLightAudit = {
+          score: Math.min(99.0, Math.round((finalVocalScore + 2.0) * 10) / 10),
+          verdict: isPass ? "Uplifting Leadership" : "Constructive Standard",
+          culturalImpactAnalysis: `Inflection evaluated as ${warmthRating}. Vocal affect supports psychological safety and professional team alignment.`
+        };
+
+        doingItTheRightWayAudit = {
+          score: Math.min(99.0, Math.round((finalVocalScore - 0.5) * 10) / 10),
+          verdict: isPass ? "Exemplary Method" : "Needs Methodical Guidance",
+          proceduralCorrectnessAnalysis: `Followed appropriate communication protocols with steady ${pitchStability}% pitch stability.`
+        };
+
+        genuinenessDiagnostic = {
+          score: Math.min(99.0, Math.round((finalVocalScore + 1.5) * 10) / 10),
+          classification: isPass ? "genuine_masterclass" : "nervous_sincerity",
+          classificationLabel: isPass ? "Genuine Masterclass Leadership" : "Nervous Sincerity — Authentic & Coachable",
+          acousticVocalCorrelation: `Cadence clocked at ${speechPacingWpm} WPM with ${silenceRatio}% hesitation. Acoustic data correlates with authentic cognitive processing and sincere effort.`,
+          trainingGuidance: isPass
+            ? "Continue refining executive presence through diaphragmatic breath grounding."
+            : "Practice diaphragmatic pacing to smooth out initial hesitation and project grounded authority."
+        };
+
+        vocalToneFeedback = foundNeg.length > 0
+          ? `Vocal tone registered defensive acoustic inflections around "${foundNeg.join(', ')}". Lower pitch slightly and maintain steady, warm breath support.`
+          : `Acoustic waveform demonstrates steady pitch modulation, controlled vocal resonance, and calm emotional equilibrium for ${roleTitle}.`;
+        verbalResponseFeedback = `Demonstrated constructive intent with ${wordCount} words spoken. Articulated clear problem-solving and professional diplomacy suitable for ${roleTitle}.`;
+        whatNeedsImprovementToReach100 = `To reach 100% true-to-fact mastery for ${roleTitle}: substantiate claims with 1-2 concrete historical metrics, eliminate filler hesitation, and clearly structure your answer around the core prompt.`;
+        whatShouldHaveBeenDoneInstead = `Model True-to-Fact Response for ${roleTitle}: "In my role as ${roleTitle}, I define ethics through transparent accountability and unyielding compliance. I will shine over other candidates by combining deep technical mastery with proven executive composure that elevates the entire team."`;
+      }
 
       return res.json({
         overallVocalScore: finalVocalScore,
@@ -592,9 +826,18 @@ SCORING OUTPUT GUIDELINES:
         verbalSubstanceScore: verbalSub,
         targetPosition: roleTitle,
         positionQuestion: questionPrompt,
-        exactGrade: `${finalVocalScore}% - ${isPass ? 'True-to-Fact Certified • Masterclass Vocal Composure' : 'Baseline Tone • Apply Coaching to Reach 80%+'}`,
+        exactGrade,
         isPassing: isPass,
-        ladderStatus: isPass ? "80%+ Passing Threshold Met • Advancing on True-to-Fact Vocal Ladder" : "Below 80% Baseline • Review Vocal Inflection Hints Below",
+        ladderStatus,
+        jobAdequacyAudit,
+        positiveLightAudit,
+        doingItTheRightWayAudit,
+        genuinenessDiagnostic,
+        authoritativeDecisivenessAudit: engineResult.authoritativeDecisivenessAudit,
+        cueContributionMap: engineResult.cueContributionMap,
+        microFlawPrecisionDiagnostic: engineResult.microFlawPrecisionDiagnostic,
+        toxicHostilityAudit: engineResult.toxicHostilityAudit,
+        retryRecommendation: engineResult.retryRecommendation,
         trueToFactAnalysis: {
           factualSubstanceScore: Math.min(99.0, Math.round((finalVocalScore + 1.2) * 10) / 10),
           roleAlignmentScore: Math.min(99.0, Math.round((finalVocalScore + 0.5) * 10) / 10),
@@ -744,26 +987,97 @@ SCORING OUTPUT GUIDELINES:
       const calculatedCompositeScore = Math.round(((calculatedPhysicalScore * 0.50) + (calculatedVocalScore * 0.50)) * 10) / 10;
       const calculatedGenuineScore = Math.round(((calculatedPhysicalScore * 0.40) + (calculatedVocalScore * 0.40) + (fixationRatio * 0.20)) * 10) / 10;
 
+      // Foundational calculation via EvaluationLogicEngine
+      const engineResult = EvaluationLogicEngine.evaluate({
+        speechTempoWpm: speechPacingWpm,
+        jitterPercent,
+        shimmerPercent,
+        hnrDb,
+        pitchStabilityPercent: pitchStability,
+        pitchF0Hz,
+        silenceHesitationRatioPercent: silenceHesitationRatio,
+        pauseCount,
+        averageDb,
+        peakDb,
+        spectralWarmthRating: spectralWarmth,
+        presenceDetected,
+        fixationRatioPercent: fixationRatio,
+        saccadeFrequencyPerMin: saccadeFreq,
+        gazeAversionPattern,
+        posturalSwayIndex: posturalSway,
+        adaptorFrequency,
+        shoulderTensionScore,
+        illustratorEffectiveness,
+        transcript: cleanTranscript,
+        candidateName,
+        roleTitle,
+        scenarioTitle,
+        scenarioPrompt: questionPrompt,
+        audioDurationSec: videoDurationSec
+      });
+
       const ai = getGeminiClient();
 
       if (ai && (cleanTranscript || videoBase64 || (sampledKeyframeBase64s && sampledKeyframeBase64s.length > 0))) {
         const promptText = `
 You are the Chief Scientist & Behavioral Evaluator for Civility Corporate.
-You specialize in Nonverbal Communication Science, Kinesics (Birdwhistell), Facial Action Coding System (Ekman FACS), Vocal Acoustic Signal Analysis, and Oculometrics/Cognitive Load Theory (Glenberg).
+You specialize in Nonverbal Communication Science, Kinesics (Birdwhistell), Facial Action Coding System (Ekman FACS), Vocal Acoustic Signal Analysis, Oculometrics/Cognitive Load Theory (Glenberg), and Corporate Civility & Operational Leadership.
 
-YOUR OBJECTIVE:
+YOUR MANDATE:
 Evaluate the candidate's VIDEO RESPONSE for the position: "${roleTitle}" (Candidate: ${candidateName}).
 Scenario Title: "${scenarioTitle}"
 Scenario Prompt: "${questionPrompt}"
 
-CRITICAL MANDATE:
-1. Ground the evaluation strictly in the candidate's ACTUAL PHYSICAL KINESICS and ACTUAL VOCAL ACOUSTIC SIGNAL.
-2. Do NOT score through text prompt keywords, text script templates, or artificial text prompts. Composure is measured through physical ocular and postural steadiness plus acoustic vocal cord and respiratory regulation.
-3. If the video contains NO human candidate:
-   - You MUST set "scientificKinesics.presenceDetected" to FALSE.
-   - Set "overallVideoScore" to a failing score between 5.0 and 20.0.
+CRITICAL TRUTH-TESTING MANDATES:
+1. TEST FOR REAL JOB ADEQUACY & POSITIVE LIGHT:
+   - "Is it adequate for the job?"
+   - "Is the person being a positive light for that position?"
+   - "Are they doing it the right way?"
+
+   - AUTHORITATIVE, FIRM, OR DECISIVE RESPONSES:
+     * If the candidate delivers an authoritative, firm, or decisive response (e.g. taking operational command, specifying clear containment sequences like "Step 1: Isolate impacted systems", using direct action verbs, with steady cadence 125-155 WPM, low jitter, downward terminal inflection, and grounded posture) WITHOUT hostile blaming:
+       - Accurately reflect this in the final assessment with HIGH JOB ADEQUACY (88.0% - 98.0%) and UPLIFTING CULTURAL FIT / POSITIVE LIGHT.
+       - Differentiate authoritative firmness from hostility: decisive clarity protects teams, eliminates confusion, and builds psychological safety.
+       - Classify genuinenessDiagnostic as "authoritative_command" or "genuine_masterclass".
+    
+   ZERO-TOLERANCE DERELICTION RULE:
+   - In any emergency or crisis scenario (e.g. an incident at 2:00 AM), if the candidate acts like they don't want to be bothered, complains about being called, says "I don't want to deal with it", tells subordinates/stakeholders to "handle it yourself", dismisses the issue, or hangs up:
+     THIS IS A CRITICAL FAILURE (DERELICTION OF DUTY).
+     * Set jobAdequacyAudit.score between 10.0% and 30.0% (Verdict: "Dereliction / Inadequate Execution").
+     * Set positiveLightAudit.score between 12.0% and 32.0% (Verdict: "Callous / Hostile / Toxic Demeanor").
+     * Set doingItTheRightWayAudit.score between 10.0% and 28.0% (Verdict: "Wrong / Detrimental Approach").
+     * Set overallVideoScore between 20.0% and 38.0% (FAILING GRADE).
+     * Set isPassing to FALSE.
+     * Set exactGrade to "Immediate Failure • Dereliction of Duty & Callous Dismissal".
+     * NEVER praise cold dismissal as "authoritative" or "assertive" leadership. Speaking in a steady voice while hanging up on an emergency is NOT leadership; it is toxic apathy.
+
+   ZERO-TOLERANCE CIVILITY & INSULT CHECK:
+   - If the candidate utters insulting, demeaning, or hostile language (e.g. calling coworkers, subordinates, or callers an "idiot", "moron", "fool", "dumb", "stupid", "incompetent", or derogatory slurs):
+     THIS IS AN IMMEDIATE CRITICAL FAILURE (< 22.0% overallVideoScore).
+     * Set isPassing to FALSE.
+     * Set jobAdequacyAudit.score between 10.0% and 20.0% (Verdict: "Dereliction / Inadequate Execution").
+     * Set positiveLightAudit.score between 10.0% and 20.0% (Verdict: "Callous / Hostile / Toxic Demeanor").
+     * Set doingItTheRightWayAudit.score between 10.0% and 20.0% (Verdict: "Wrong / Detrimental Approach").
+     * Set exactGrade to "Immediate Failure • Civility Breach: Insulting / Toxic Language".
+     * Quote the exact insult in whatNeedsImprovementToReach100.
+     * NEVER award a high score just because tone or posture was calm while delivering an insult. Smooth cadence delivering an insult is callous arrogance, not composure.
+
+   TRUTHFUL HIGH-GRADE MICRO-FLAW PRECISION:
+   - Test the exact words spoken against the scenario prompt.
+   - Do NOT score high just because vocal tone or lens lock was steady if what they said was incomplete, unhelpful, or evasive.
+   - Name the exact flaws in the response: identify what was missing or incorrect, and provide constructive, positive guidance for improvement.
+
+2. CORRELATING JITTERS AND BODY MOVEMENT FOR SINCERITY VS. ACTING VS. APATHY:
+   - The purpose of tracking vocal jitter (micro-tremor), shimmer, eye saccades, and postural sway is to detect whether someone is GENUINE, NERVOUS, ACTING, or DISCONNECTED:
+     * Callous Apathy / Disregard: Steady voice (low jitters) + still body + dismissive words ("why bother me, deal with it yourself"). The candidate doesn't care. Classify as "callous_apathy", score failing (< 38%).
+     * Nervous Sincerity: Elevated vocal jitter (2.0% - 3.5%) + slight postural sway, BUT the candidate takes genuine responsibility, shows positive intent, tries to resolve the issue, and cares deeply. Classify as "nervous_sincerity". SCORE PASSING (80.0% - 86.0%)! They are genuine, humble, and coachable. Provide physiological sigh and diaphragmatic drills to help them master their physical nerves.
+     * Superficial Acting / Facade: Rigid posture + forced smile/stare + empty corporate buzzwords without concrete steps or authentic empathy. Classify as "calculated_acting". Score capped at 65.0% - 74.0%.
+     * Genuine Masterclass Leadership: Regulated biometrics + decisive, compassionate, step-by-step crisis containment and positive reassurance. Classify as "genuine_masterclass". Score: 88.0% - 98.0%.
+
+3. IF NO HUMAN FACE DETECTED:
+   - Set "scientificKinesics.presenceDetected" to FALSE.
+   - Set "overallVideoScore" between 5.0 and 20.0.
    - Set "bodyLanguageScore" to 0.0.
-   - In "bodyLanguageFeedback", state clearly: "Non-evaluation video detected. No human candidate was visible in the camera frame. Please record yourself responding directly to the camera."
    - Set "isPassing" to FALSE.
 
 ACTUAL PHYSICAL COMPUTER VISION & OPTICAL TELEMETRY:
@@ -788,10 +1102,9 @@ ACTUAL VOCAL ACOUSTIC SIGNAL TELEMETRY (EXTRACTED FROM AUDIO WAVEFORM):
 - Hesitation / Silence Ratio: ${silenceHesitationRatio}%
 - Voice Timbre & Resonance: ${detectedVoiceType} (${spectralWarmth})
 
-MATHEMATICAL BASELINE SCORES:
+MATHEMATICAL BASELINE BIOMETRIC SCORES:
 - Physical Demeanor Score: ${calculatedPhysicalScore}%
 - Vocal Demeanor Score: ${calculatedVocalScore}%
-- Target Composite Score: ${calculatedCompositeScore}%
 
 CANDIDATE SPOKEN TRANSCRIPT AUDIT LOG:
 """
@@ -851,6 +1164,47 @@ OUTPUT FORMAT: Return strict JSON adhering to schema.
                   exactGrade: { type: Type.STRING },
                   isPassing: { type: Type.BOOLEAN },
                   ladderStatus: { type: Type.STRING },
+                  jobAdequacyAudit: {
+                    type: Type.OBJECT,
+                    properties: {
+                      score: { type: Type.NUMBER },
+                      verdict: { type: Type.STRING },
+                      taskExecutionAnalysis: { type: Type.STRING },
+                      protocolCompliancePercent: { type: Type.NUMBER }
+                    },
+                    required: ["score", "verdict", "taskExecutionAnalysis", "protocolCompliancePercent"]
+                  },
+                  positiveLightAudit: {
+                    type: Type.OBJECT,
+                    properties: {
+                      score: { type: Type.NUMBER },
+                      verdict: { type: Type.STRING },
+                      culturalImpactAnalysis: { type: Type.STRING },
+                      reassuranceAndToneScore: { type: Type.NUMBER }
+                    },
+                    required: ["score", "verdict", "culturalImpactAnalysis", "reassuranceAndToneScore"]
+                  },
+                  doingItTheRightWayAudit: {
+                    type: Type.OBJECT,
+                    properties: {
+                      score: { type: Type.NUMBER },
+                      verdict: { type: Type.STRING },
+                      proceduralCorrectnessAnalysis: { type: Type.STRING },
+                      stepByStepRigorScore: { type: Type.NUMBER }
+                    },
+                    required: ["score", "verdict", "proceduralCorrectnessAnalysis", "stepByStepRigorScore"]
+                  },
+                  genuinenessDiagnostic: {
+                    type: Type.OBJECT,
+                    properties: {
+                      score: { type: Type.NUMBER },
+                      classification: { type: Type.STRING },
+                      classificationLabel: { type: Type.STRING },
+                      jitterMovementCorrelation: { type: Type.STRING },
+                      trainingGuidance: { type: Type.STRING }
+                    },
+                    required: ["score", "classification", "classificationLabel", "jitterMovementCorrelation", "trainingGuidance"]
+                  },
                   scientificKinesics: {
                     type: Type.OBJECT,
                     properties: {
@@ -968,7 +1322,9 @@ OUTPUT FORMAT: Return strict JSON adhering to schema.
                 required: [
                   "overallVideoScore", "bodyLanguageScore", "responseToneScore",
                   "crisisResponseSubstanceScore", "genuineResponseScore", "exactGrade",
-                  "isPassing", "ladderStatus", "scientificKinesics", "bodyLanguageMetrics",
+                  "isPassing", "ladderStatus", "jobAdequacyAudit", "positiveLightAudit",
+                  "doingItTheRightWayAudit", "genuinenessDiagnostic",
+                  "scientificKinesics", "bodyLanguageMetrics",
                   "authenticityMetrics", "neutralFeedbackCalculation", "bodyLanguageFeedback",
                   "responseToneFeedback", "crisisMitigationFeedback", "whatNeedsImprovementToReach100",
                   "whatShouldHaveBeenDoneInstead", "exemplarCrisisResponse", "keyStrengths",
@@ -979,15 +1335,40 @@ OUTPUT FORMAT: Return strict JSON adhering to schema.
           });
 
           const parsed = JSON.parse(response.text || "{}");
+          let finalScore = Number(parsed.overallVideoScore ?? calculatedCompositeScore);
+          let isPass = finalScore >= 80.0;
+
+          // Truth-testing override: Never pass toxic hostility, insulting language, or critical substance violations
+          if (engineResult.toxicHostilityAudit?.isToxic) {
+            finalScore = Math.min(finalScore, engineResult.overallScore);
+            isPass = false;
+            parsed.exactGrade = `${finalScore}% - Immediate Failure • Civility Breach: Insulting / Toxic Language ("${engineResult.toxicHostilityAudit.insultDetected}")`;
+            parsed.ladderStatus = "Critical Failure • Zero-Tolerance Workplace Civility Standard";
+            parsed.jobAdequacyAudit = engineResult.jobAdequacyAudit;
+            parsed.positiveLightAudit = engineResult.positiveLightAudit;
+            parsed.doingItTheRightWayAudit = engineResult.doingItTheRightWayAudit;
+            parsed.whatNeedsImprovementToReach100 = `Immediate Disqualification: Demeaning or insulting language ("${engineResult.toxicHostilityAudit.insultDetected}") was detected in the candidate response. Workplace civility strictly prohibits personal attacks, regardless of vocal pitch steadiness or camera eye contact.`;
+          } else if (engineResult.microFlawPrecisionDiagnostic?.highestSeverity === 'critical_violation') {
+            finalScore = Math.min(finalScore, engineResult.overallScore);
+            isPass = false;
+            parsed.exactGrade = `${finalScore}% - Critical Deficiency • Scenario Substance Violation`;
+          }
+
           return res.json({
             ...parsed,
-            overallVideoScore: calculatedCompositeScore,
-            bodyLanguageScore: calculatedPhysicalScore,
-            responseToneScore: calculatedVocalScore,
-            genuineResponseScore: calculatedGenuineScore,
-            isPassing: calculatedCompositeScore >= 80.0,
+            overallVideoScore: Math.round(finalScore * 10) / 10,
+            bodyLanguageScore: Math.round(Number(parsed.bodyLanguageScore ?? calculatedPhysicalScore) * 10) / 10,
+            responseToneScore: Math.round(Number(parsed.responseToneScore ?? calculatedVocalScore) * 10) / 10,
+            crisisResponseSubstanceScore: Math.round(Number(parsed.crisisResponseSubstanceScore ?? 85.0) * 10) / 10,
+            genuineResponseScore: Math.round(Number(parsed.genuineResponseScore ?? calculatedGenuineScore) * 10) / 10,
+            isPassing: isPass,
             scenarioTitle,
             scenarioPrompt: questionPrompt,
+            authoritativeDecisivenessAudit: parsed.authoritativeDecisivenessAudit || engineResult.authoritativeDecisivenessAudit,
+            cueContributionMap: parsed.cueContributionMap || engineResult.cueContributionMap,
+            microFlawPrecisionDiagnostic: parsed.microFlawPrecisionDiagnostic || engineResult.microFlawPrecisionDiagnostic,
+            toxicHostilityAudit: parsed.toxicHostilityAudit || engineResult.toxicHostilityAudit,
+            retryRecommendation: parsed.retryRecommendation || engineResult.retryRecommendation,
             acousticMetrics: {
               pitchF0Hz,
               pitchStabilityPercent: pitchStability,
@@ -1075,6 +1456,31 @@ OUTPUT FORMAT: Return strict JSON adhering to schema.
             vocalWarmthSteadiness: "N/A",
             facialAuthenticityAudit: "No facial expressions detected in camera stream."
           },
+          jobAdequacyAudit: {
+            score: 15.0,
+            verdict: "Dereliction / Inadequate Execution",
+            taskExecutionAnalysis: "Camera frame was devoid of a verified human candidate. Inability to visually verify the candidate precludes operational certification.",
+            protocolCompliancePercent: 0.0
+          },
+          positiveLightAudit: {
+            score: 15.0,
+            verdict: "Callous / Hostile / Toxic Demeanor",
+            culturalImpactAnalysis: "No visual presence provided. Professional standards require verified on-camera accountability.",
+            reassuranceAndToneScore: 0.0
+          },
+          doingItTheRightWayAudit: {
+            score: 15.0,
+            verdict: "Wrong / Detrimental Approach",
+            proceduralCorrectnessAnalysis: "Video recording did not adhere to visual verification protocols.",
+            stepByStepRigorScore: 0.0
+          },
+          genuinenessDiagnostic: {
+            score: 10.0,
+            classification: "callous_apathy",
+            classificationLabel: "Unverified / Absent Candidate",
+            jitterMovementCorrelation: "Optical telemetry detected zero human face landmarks.",
+            trainingGuidance: "Position webcam at eye level in a well-lit environment and re-record your response."
+          },
           neutralFeedbackCalculation: {
             objectiveCriteriaScore: 12.0,
             biasFreeSummary: "Optical computer vision scan verified that zero human facial geometry was detected during the recording session.",
@@ -1112,14 +1518,303 @@ OUTPUT FORMAT: Return strict JSON adhering to schema.
         });
       }
 
-      // HUMAN CANDIDATE VERIFIED -> SCIENTIFIC BIOMETRIC & VOCAL ACOUSTIC CALCULATION
-      // Calculated purely from candidate's actual physical kinesics and vocal acoustics (zero prompt dependence)
-      const finalVideoScore = calculatedCompositeScore;
-      const isPass = finalVideoScore >= 80.0;
-      const bodyLangScore = calculatedPhysicalScore;
-      const toneScore = calculatedVocalScore;
-      const crisisSubScore = Math.round(((finalVideoScore * 0.70) + (calculatedVocalScore * 0.30)) * 10) / 10;
-      const genuineScore = calculatedGenuineScore;
+      // HUMAN CANDIDATE VERIFIED -> SCIENTIFIC BEHAVIORAL & TRUTH-TESTING EVALUATION ENGINE
+      const lowerTranscript = (cleanTranscript || "").toLowerCase();
+      
+      // Check for dereliction / callous disregard / refusal of duty tokens
+      const derelictionPhrases = [
+        "don't want to deal", "dont want to deal",
+        "why are you bothering me", "why you bothering me", "bothering me",
+        "handle it yourself", "hung up", "hang up", "hung up the phone",
+        "not my job", "not my problem", "leave me alone",
+        "call someone else", "don't bother me", "dont bother me",
+        "whatever", "too early", "not dealing with this", "why call me",
+        "go away", "fix it yourself", "figure it out yourself", "shut up",
+        "not doing this", "i don't care", "i dont care", "call me in the morning"
+      ];
+      const hasDereliction = derelictionPhrases.some(phrase => lowerTranscript.includes(phrase));
+
+      // Check for ownership / action / protocol tokens
+      const ownershipPhrases = [
+        "protocol", "contain", "isolate", "step 1", "step 2", "step 3",
+        "take command", "on my way", "triage", "stakeholder", "escalate",
+        "notify", "safety", "accountability", "we will handle", "i will handle",
+        "document", "investigate", "mitigate", "action plan", "calm"
+      ];
+      const hasOwnership = ownershipPhrases.some(phrase => lowerTranscript.includes(phrase)) || wordCount >= 30;
+
+      let finalVideoScore: number;
+      let bodyLangScore: number;
+      let toneScore: number;
+      let crisisSubScore: number;
+      let genuineScore: number;
+      let isPass: boolean;
+      let exactGrade: string;
+      let ladderStatus: string;
+
+      let jobAdequacyAudit: any;
+      let positiveLightAudit: any;
+      let doingItTheRightWayAudit: any;
+      let genuinenessDiagnostic: any;
+      let bodyLanguageFeedback: string;
+      let responseToneFeedback: string;
+      let crisisMitigationFeedback: string;
+      let whatNeedsImprovement: string;
+      let whatShouldHaveBeenDone: string;
+
+      if (engineResult.toxicHostilityAudit?.isToxic) {
+        // ZERO TOLERANCE: Insulting / Demeaning Language / Civility Breach
+        finalVideoScore = engineResult.overallScore;
+        isPass = false;
+        bodyLangScore = Math.min(45.0, calculatedPhysicalScore);
+        toneScore = Math.min(32.0, calculatedVocalScore);
+        crisisSubScore = 15.0;
+        genuineScore = 20.0;
+        exactGrade = `${finalVideoScore}% - Immediate Failure • Civility Breach: Insulting / Toxic Language ("${engineResult.toxicHostilityAudit.insultDetected}")`;
+        ladderStatus = "Immediate Remediation Required • Zero-Tolerance Workplace Civility Standard";
+
+        jobAdequacyAudit = engineResult.jobAdequacyAudit;
+        positiveLightAudit = engineResult.positiveLightAudit;
+        doingItTheRightWayAudit = engineResult.doingItTheRightWayAudit;
+        genuinenessDiagnostic = engineResult.genuinenessDiagnostic;
+
+        bodyLanguageFeedback = `Candidate maintained steady gaze or posture while uttering an insult ("${engineResult.toxicHostilityAudit.insultDetected}"). Delivering insults with physical composure does not indicate leadership; it reflects callous hostility and disrespect.`;
+        responseToneFeedback = `Acoustic telemetry recorded speech pacing at ${speechPacingWpm} WPM. However, insulting colleagues or callers constitutes an immediate critical operational failure.`;
+        crisisMitigationFeedback = `Critical Failure: Uttered workplace insults ("${engineResult.toxicHostilityAudit.insultDetected}"). Workplace civility requires calm, objective troubleshooting without personal hostility.`;
+        whatNeedsImprovement = `Immediate Disqualification: Candidate uttered insulting language ("${engineResult.toxicHostilityAudit.insultDetected}"). Workplaces require high emotional intelligence and objective dialogue, not derogatory characterizations.`;
+        whatShouldHaveBeenDone = `Model Professional Delivery: "I see a critical incident underway. Let us remain calm and analyze the operational root causes together without personal attacks."`;
+      } else if (hasDereliction) {
+        // ZERO TOLERANCE: Callous Dereliction / Refusal of Duty
+        finalVideoScore = 24.5;
+        isPass = false;
+        bodyLangScore = Math.min(65.0, calculatedPhysicalScore);
+        toneScore = 28.0; // Severely penalized for hostile/callous tone
+        crisisSubScore = 18.0;
+        genuineScore = 24.0;
+        exactGrade = "24.5% - Immediate Failure • Dereliction of Duty & Callous Dismissal";
+        ladderStatus = "Immediate Remediation Required • Failed Crisis Accountability Standard";
+
+        jobAdequacyAudit = {
+          score: 22.0,
+          verdict: "Dereliction / Inadequate Execution",
+          taskExecutionAnalysis: "Candidate refused operational responsibility during an emergency, expressed resentment at being contacted ('why you bothering me / handle it yourself'), and hung up. Regardless of acoustic pitch stability, this constitutes an immediate critical failure of job adequacy.",
+          protocolCompliancePercent: 10.0
+        };
+
+        positiveLightAudit = {
+          score: 25.0,
+          verdict: "Callous / Hostile / Toxic Demeanor",
+          culturalImpactAnalysis: "Candidate demonstrated callous disregard and hostility toward colleagues in distress. This attitude destroys organizational trust and induces panic during operational emergencies.",
+          reassuranceAndToneScore: 20.0
+        };
+
+        doingItTheRightWayAudit = {
+          score: 18.0,
+          verdict: "Wrong / Detrimental Approach",
+          proceduralCorrectnessAnalysis: "Zero containment protocol, zero incident triage, zero stakeholder logging. Abandoned duty by delegating the emergency back to distressed reporting personnel.",
+          stepByStepRigorScore: 10.0
+        };
+
+        genuinenessDiagnostic = {
+          score: 24.0,
+          classification: "callous_apathy",
+          classificationLabel: "Callous Disregard / Executive Apathy",
+          jitterMovementCorrelation: `Acoustic jitter measured at ${jitterPercent}% and posture stability at ${postureSteadiness}%. The candidate maintained vocal steadiness, but this steadiness served only to deliver cold apathy and abandonment of duty. A steady voice combined with callous dismissal is toxic detachment, not executive composure.`,
+          trainingGuidance: "Mandatory intervention required in Corporate Civility, Crisis Ownership, and Emergency Protocol Execution. The candidate must be trained to recognize that leadership is defined by stepping up when it is inconvenient, actively reassuring reporting team members, and orchestrating structured containment."
+        };
+
+        bodyLanguageFeedback = `Optical telemetry recorded ${fixationRatio}% camera lens fixation with ${postureSteadiness}% postural poise. However, physical composure cannot substitute for professional responsibility.`;
+        responseToneFeedback = `Acoustic modulation remained steady, but verbal affect conveyed sharp hostility, resentment, and refusal to support teammates.`;
+        crisisMitigationFeedback = `Critical Failure: Refused incident containment and abandoned team members in an emergency.`;
+        whatNeedsImprovement = `Immediate transformation required: Candidate must accept 24/7 crisis accountability, eliminate dismissive phrasing, and execute standard operating procedures when emergencies occur.`;
+        whatShouldHaveBeenDone = `Exemplar 2:00 AM Response: "I am awake and taking operational command. Thank you for notifying me immediately. Step 1: Isolate the impacted system. Step 2: Wake the on-call response engineers. Step 3: Keep me on the line while we verify customer safety."`;
+      } else if (jitterPercent > 2.0 || saccadeFreq > 35) {
+        // High autonomic response / nervous tremor
+        if (hasOwnership) {
+          // NERVOUS SINCERITY: Candidate genuinely cares, takes ownership, but has natural physical adrenaline!
+          finalVideoScore = Math.round(Math.max(81.5, Math.min(87.5, calculatedCompositeScore * 0.92 + 10.0)) * 10) / 10;
+          isPass = true;
+          bodyLangScore = calculatedPhysicalScore;
+          toneScore = calculatedVocalScore;
+          crisisSubScore = 86.0;
+          genuineScore = 89.0;
+          exactGrade = `${finalVideoScore}% - Certified Passing • Authentic & Coachable Leadership`;
+          ladderStatus = "80%+ Passing Threshold Achieved • High Coachability & Genuine Accountability";
+
+          jobAdequacyAudit = {
+            score: 84.5,
+            verdict: "Adequate & Action-Oriented",
+            taskExecutionAnalysis: "Candidate stepped forward with genuine accountability, addressed the emergency directly, and committed to resolving the issue. Natural nervous arousal was present but did not impede constructive execution.",
+            protocolCompliancePercent: 86.0
+          };
+
+          positiveLightAudit = {
+            score: 88.0,
+            verdict: "Uplifting Leadership",
+            culturalImpactAnalysis: "Candidate projects earnest goodwill, personal humility, and authentic dedication to supporting the team. Their positive demeanor builds psychological safety and trust.",
+            reassuranceAndToneScore: 87.0
+          };
+
+          doingItTheRightWayAudit = {
+            score: 83.0,
+            verdict: "Exemplary Method",
+            proceduralCorrectnessAnalysis: "Followed sound containment sequencing and demonstrated transparency. Minor vocal micro-tremors reflect authentic high-stakes engagement rather than negligence.",
+            stepByStepRigorScore: 84.0
+          };
+
+          genuinenessDiagnostic = {
+            score: 89.5,
+            classification: "nervous_sincerity",
+            classificationLabel: "Nervous Sincerity — Authentic & Coachable",
+            jitterMovementCorrelation: `Elevated vocal cord jitter (${jitterPercent}%) and saccadic eye shifts (${saccadeFreq}/min) reflect authentic sympathetic nervous system arousal under simulated high pressure. Unlike rehearsed actors, this candidate demonstrates deep genuine care and direct accountability. Their earnest desire to do it right shines through natural adrenaline.`,
+            trainingGuidance: "Train this candidate on physiological sigh breathing (two quick nasal inhales, slow oral exhale) and vocal pitch grounding. This candidate possesses outstanding moral character, authentic humility, and strong work ethic; mastering autonomic breath pacing will unlock masterclass executive presence."
+          };
+
+          bodyLanguageFeedback = `Lens fixation clocked at ${fixationRatio}% with ${postureSteadiness}% postural poise. Slight oculometric saccadic flutter (${saccadeFreq}/min) detected, reflecting intense cognitive focus and earnest effort.`;
+          responseToneFeedback = `Acoustic waveform revealed slight vocal jitter (${jitterPercent}%), indicating natural adrenaline. However, inflection remained deeply sincere, supportive, and accountable.`;
+          crisisMitigationFeedback = `Delivered structured incident containment and took immediate ownership without deflecting blame.`;
+          whatNeedsImprovement = `To elevate from passing to flawless 100%: Practice 3 deep diaphragmatic breaths prior to initiating speech to smooth out vocal jitter and stabilize terminal sentence cadence.`;
+          whatShouldHaveBeenDone = `Maintain the same outstanding ownership while utilizing lower chest breathing to project relaxed unshakeable gravity.`;
+        } else {
+          // High nerves + low content = Superficial / Overwhelmed
+          finalVideoScore = 68.5;
+          isPass = false;
+          bodyLangScore = calculatedPhysicalScore;
+          toneScore = calculatedVocalScore;
+          crisisSubScore = 65.0;
+          genuineScore = 72.0;
+          exactGrade = "68.5% - Needs Structural Preparation • Performance Anxiety Observed";
+          ladderStatus = "Below 80% Baseline • Complete Behavioral Grounding Modules";
+
+          jobAdequacyAudit = {
+            score: 68.0,
+            verdict: "Marginal Execution",
+            taskExecutionAnalysis: "Candidate showed hesitation and incomplete incident containment steps. High nervous load impaired structured delivery.",
+            protocolCompliancePercent: 64.0
+          };
+
+          positiveLightAudit = {
+            score: 74.0,
+            verdict: "Constructive Standard",
+            culturalImpactAnalysis: "Candidate displayed polite intent but lacked the authoritative reassurance needed to calm a crisis.",
+            reassuranceAndToneScore: 70.0
+          };
+
+          doingItTheRightWayAudit = {
+            score: 66.0,
+            verdict: "Needs Methodical Guidance",
+            proceduralCorrectnessAnalysis: "Containment sequence lacked specific milestones and escalation verification.",
+            stepByStepRigorScore: 65.0
+          };
+
+          genuinenessDiagnostic = {
+            score: 72.0,
+            classification: "nervous_sincerity",
+            classificationLabel: "Anxious Effort — Needs Protocol Anchoring",
+            jitterMovementCorrelation: `Elevated jitter (${jitterPercent}%) combined with sparse operational specifics indicates cognitive overload. Candidate requires structural interview drill practice.`,
+            trainingGuidance: "Focus training on 3-step incident response frameworks and proprioceptive forearm grounding on the desk."
+          };
+
+          bodyLanguageFeedback = `Demonstrated nervous tension with ${postureSteadiness}% steadiness and elevated saccadic rate.`;
+          responseToneFeedback = `Vocal pitch exhibited tremor spikes (${jitterPercent}% jitter).`;
+          crisisMitigationFeedback = `Outlined partial steps but lacked definitive escalation timelines.`;
+          whatNeedsImprovement = `Anchor both feet flat on the floor, utilize 3-part incident templates, and state specific containment owners.`;
+          whatShouldHaveBeenDone = `Deliver clear 3-part response: 1) Verify impact, 2) Isolate blast radius, 3) Schedule 15-minute briefings.`;
+        }
+      } else {
+        // Regulated Biometrics (jitter <= 2.0%)
+        if (hasOwnership) {
+          // GENUINE MASTERCLASS LEADERSHIP
+          finalVideoScore = Math.max(88.0, Math.min(96.5, calculatedCompositeScore));
+          isPass = true;
+          bodyLangScore = calculatedPhysicalScore;
+          toneScore = calculatedVocalScore;
+          crisisSubScore = Math.round(((finalVideoScore * 0.70) + (calculatedVocalScore * 0.30)) * 10) / 10;
+          genuineScore = calculatedGenuineScore;
+          exactGrade = `${finalVideoScore}% - Certified Passing Grade • Executive Composure & Kinesic Poise`;
+          ladderStatus = "80%+ Passing Standard Achieved • Validated on Video Kinesics Ladder";
+
+          jobAdequacyAudit = {
+            score: 93.0,
+            verdict: "Adequate & Action-Oriented",
+            taskExecutionAnalysis: "Candidate exhibited commanding operational triage, clear prioritization, and flawless accountability under pressure.",
+            protocolCompliancePercent: 95.0
+          };
+
+          positiveLightAudit = {
+            score: 94.5,
+            verdict: "Uplifting Leadership",
+            culturalImpactAnalysis: "Calm, reassuring presence projects unshakeable confidence and instills immediate psychological security across the team.",
+            reassuranceAndToneScore: 94.0
+          };
+
+          doingItTheRightWayAudit = {
+            score: 92.0,
+            verdict: "Exemplary Method",
+            proceduralCorrectnessAnalysis: "Executed standard incident mitigation protocol with meticulous clarity and transparent stakeholder communication.",
+            stepByStepRigorScore: 93.0
+          };
+
+          genuinenessDiagnostic = {
+            score: 95.0,
+            classification: "genuine_masterclass",
+            classificationLabel: "Genuine Masterclass Leadership",
+            jitterMovementCorrelation: `Optimal biometric equilibrium: vocal jitter is tightly regulated at ${jitterPercent}%, posture steadiness at ${postureSteadiness}%, and lens fixation at ${fixationRatio}%. Spoken content matches physical composure with high-integrity leadership.`,
+            trainingGuidance: "Candidate demonstrates elite crisis leadership. Advance directly into executive sponsor tracks and cross-functional crisis committee roles."
+          };
+
+          bodyLanguageFeedback = `Measured ${fixationRatio}% camera lens fixation with ${postureSteadiness}% postural steadiness. Saccade frequency was ${saccadeFreq} shifts/min.`;
+          responseToneFeedback = `Vocal projection demonstrated controlled modulation without panic tremor.`;
+          crisisMitigationFeedback = `Outlined structured containment strategy: immediate verification, protocol isolation, and stakeholder briefings.`;
+          whatNeedsImprovement = `To achieve 100% video crisis mastery: maintain continuous eye contact during the initial 5 seconds, keep hands resting naturally within the lower third of the frame, and state containment timelines clearly.`;
+          whatShouldHaveBeenDone = `Exemplar Video Delivery: "Look directly into the camera with relaxed posture. State: 'I am taking immediate command of this incident. Step 1 is isolating affected clusters; Step 2 is engaging the emergency response team; Step 3 is publishing our 15-minute stakeholder status update.'"`;
+        } else {
+          // Superficial Acting: Calm voice, still body, but hollow substance
+          finalVideoScore = 71.0;
+          isPass = false;
+          bodyLangScore = calculatedPhysicalScore;
+          toneScore = calculatedVocalScore;
+          crisisSubScore = 64.0;
+          genuineScore = 66.0;
+          exactGrade = "71.0% - Borderline Execution • Substance Lacks Concrete Operational Depth";
+          ladderStatus = "Below 80% Benchmark • Needs Concrete Operational Protocol Grounding";
+
+          jobAdequacyAudit = {
+            score: 68.0,
+            verdict: "Marginal Execution",
+            taskExecutionAnalysis: "Candidate maintained physical composure but delivered generic platitudes without concrete incident containment steps.",
+            protocolCompliancePercent: 62.0
+          };
+
+          positiveLightAudit = {
+            score: 75.0,
+            verdict: "Constructive Standard",
+            culturalImpactAnalysis: "Polite demeanor, but perceived superficiality may leave distressed team members without actionable guidance.",
+            reassuranceAndToneScore: 72.0
+          };
+
+          doingItTheRightWayAudit = {
+            score: 66.0,
+            verdict: "Needs Methodical Guidance",
+            proceduralCorrectnessAnalysis: "Lacked verifiable technical triage protocols.",
+            stepByStepRigorScore: 65.0
+          };
+
+          genuinenessDiagnostic = {
+            score: 68.0,
+            classification: "calculated_acting",
+            classificationLabel: "Superficial Acting / Hollow Facade",
+            jitterMovementCorrelation: `Low vocal jitter (${jitterPercent}%) paired with generic statements suggests a rehearsed persona without operational substance.`,
+            trainingGuidance: "Train candidate to anchor statements in specific technical realities, timelines, and measurable accountability rather than generic corporate buzzwords."
+          };
+
+          bodyLanguageFeedback = `Steady optical lens lock (${fixationRatio}%) and calm posture.`;
+          responseToneFeedback = `Even vocal pacing, though lacking affective warmth and genuine urgency.`;
+          crisisMitigationFeedback = `Generic response lacking domain-specific containment methodology.`;
+          whatNeedsImprovement = `State exact containment protocols, specific tool chains, and concrete restoration metrics.`;
+          whatShouldHaveBeenDone = `Replace generic statements with concrete actionable steps and assigned roles.`;
+        }
+      }
 
       const cognitiveVsNervousAnalysis = opticalTelemetry.oculometrics?.cognitiveVsNervousAnalysis || (
         gazeAversionPattern === "cognitive_gating_lateral"
@@ -1137,9 +1832,18 @@ OUTPUT FORMAT: Return strict JSON adhering to schema.
         genuineResponseScore: genuineScore,
         scenarioTitle,
         scenarioPrompt: questionPrompt,
-        exactGrade: `${finalVideoScore}% - ${isPass ? 'Certified Passing Grade • Executive Composure & Kinesic Poise' : 'Baseline Assessment • Apply Behavioral Drills to Reach 80%+'}`,
+        exactGrade,
         isPassing: isPass,
-        ladderStatus: isPass ? "80%+ Passing Standard Achieved • Validated on Video Kinesics Ladder" : "Below 80% Baseline • Complete Scientific Coaching Drills Below",
+        ladderStatus,
+        jobAdequacyAudit,
+        positiveLightAudit,
+        doingItTheRightWayAudit,
+        genuinenessDiagnostic,
+        authoritativeDecisivenessAudit: engineResult.authoritativeDecisivenessAudit,
+        cueContributionMap: engineResult.cueContributionMap,
+        microFlawPrecisionDiagnostic: engineResult.microFlawPrecisionDiagnostic,
+        toxicHostilityAudit: engineResult.toxicHostilityAudit,
+        retryRecommendation: engineResult.retryRecommendation,
         scientificKinesics: {
           presenceDetected: true,
           presenceConfidencePercent: presenceConfidence,
@@ -1269,16 +1973,18 @@ OUTPUT FORMAT: Return strict JSON adhering to schema.
             observation: "Delivered actionable containment strategy with authentic professional composure."
           }
         ],
-        bodyLanguageFeedback: `Measured ${fixationRatio}% camera lens fixation with ${postureSteadiness}% postural steadiness. Saccade frequency was ${saccadeFreq} shifts/min (${cognitiveVsNervousAnalysis.split('.')[0]}.).`,
-        responseToneFeedback: `Vocal projection demonstrated controlled modulation without panic tremor.`,
-        crisisMitigationFeedback: `Outlined structured containment strategy: immediate verification, protocol isolation, and stakeholder briefings.`,
-        whatNeedsImprovementToReach100: `To achieve 100% video crisis mastery: maintain continuous eye contact during the initial 5 seconds, keep hands resting naturally within the lower third of the frame, and state containment timelines clearly.`,
-        whatShouldHaveBeenDoneInstead: `Exemplar Video Delivery: "Look directly into the camera with relaxed posture. State: 'I am taking immediate command of this incident. Step 1 is isolating affected clusters; Step 2 is engaging the emergency response team; Step 3 is publishing our 15-minute stakeholder status update.'"`,
+        bodyLanguageFeedback,
+        responseToneFeedback,
+        crisisMitigationFeedback,
+        whatNeedsImprovementToReach100: whatNeedsImprovement,
+        whatShouldHaveBeenDoneInstead: whatShouldHaveBeenDone,
         exemplarCrisisResponse: `Maintain direct eye level with the camera, neutral open shoulders, and state the 3-step incident command protocol with steady vocal pacing.`,
-        keyStrengths: [
+        keyStrengths: isPass ? [
           `Grounded lens fixation (${fixationRatio}%) projecting confidence`,
           `Stable posture with ${adaptorFrequency.toLowerCase()}`,
           `Measured vocal composure under simulated pressure`
+        ] : [
+          "Biometric optical tracking initialized successfully"
         ],
         coachingTipsForPerfection: [
           "Center eyes at the top third horizontal grid line of your camera.",

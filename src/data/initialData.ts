@@ -28,9 +28,102 @@ export const INITIAL_JOB_REQUIREMENTS: JobRequirement[] = [
         'In a high-pressure 2 AM incident response room, how do you maintain respectful communication with junior engineers?',
         'Describe how you take personal accountability when an operational security oversight originates from your team.'
       ],
-      toneScenario: 'Scenario: A peer colleague who was not performing their full share of duties was promoted ahead of you. How do you respond in voice?',
+      toneScenario: 'Scenario: A peer colleague who was not performing their full share of duties was promoted ahead of you. How do you respond in voice to your department director?',
       pressureScenario: 'Scenario: At 2:00 AM on a weekend, a high-severity security breach occurs threatening client data. Walk us through your live video response.',
-      motivationScenario: 'What deep inside do you feel makes you unique as a candidate? What driving force drives your commitment to fully acclimate into our company?'
+      motivationScenario: 'What deep inside do you feel makes you unique as a candidate? What driving force drives your commitment to fully acclimate into our company?',
+      toneRubric: {
+        scenarioTitle: 'Professional Growth & Merit Recognition Under Organizational Friction',
+        scenarioContext: 'Evaluates your executive demeanor when handling career disappointment. Tests whether you maintain civility, eliminate toxicity, and advocate for advancement using objective milestones.',
+        targetCompetencies: ['Cross-Functional Civility', 'Executive Self-Advocacy', 'Emotional Composure', 'Mission Alignment'],
+        evaluationDimensions: [
+          { name: 'Civility & Positive Light', weightPercent: 30, description: 'Zero toxicity, gossip, or belittling of peers; celebrates company progress while holding personal boundaries.' },
+          { name: 'Objective Self-Advocacy', weightPercent: 30, description: 'Requests clear performance metrics, KPIs, and developmental mentorship rather than complaining.' },
+          { name: 'Acoustic Demeanor & Composure', weightPercent: 25, description: 'Measured downward inflection, absence of bitter vocal tremolo, steady cadence (120-150 WPM).' },
+          { name: 'Operational Commitment', weightPercent: 15, description: 'Affirms continued top-tier execution and collaborative team leadership.' }
+        ],
+        passingCriteria80: [
+          'Acknowledges the director respectfully without attacking the promoted colleague',
+          'Shifts conversation constructively toward personal milestones and concrete career goals',
+          'Maintains steady acoustic pitch stability (>88%) and clear breath support'
+        ],
+        exemplarCriteria100: [
+          'Proactively suggests high-impact stretch initiatives to prove readiness for the next promotion tier',
+          'Exhibits genuine organizational empathy while establishing unambiguous future review check-ins',
+          'Delivers flawless acoustic poise with low hesitation (<12%) and resonant vocal warmth'
+        ],
+        criticalFailureTraps: [
+          'Insulting, demeaning, or attacking the colleague who was promoted (Instant Civility Breach)',
+          'Threatening quiet-quitting, slowdowns, or passive-aggressive resistance',
+          'Audible contempt, defensive vocal attacks, or hostile scoffing'
+        ],
+        responseFramework: [
+          { step: '1. Poised Acknowledgment', action: 'Respect the leadership decision and affirm dedication to team success.', vocalDelivery: 'Calm, grounded opening tone (130 WPM)' },
+          { step: '2. Metric-Driven Inquest', action: 'Ask for specific developmental criteria and gaps needed to reach the next tier.', vocalDelivery: 'Objective, steady pitch modulation' },
+          { step: '3. Reaffirm Commitment', action: 'Set a concrete 60-day milestone check-in to review demonstrated readiness.', vocalDelivery: 'Decisive downward cadence' }
+        ]
+      },
+      pressureRubric: {
+        scenarioTitle: '2:00 AM Crisis Incident Command & Zero-Trust Containment',
+        scenarioContext: 'Evaluates immediate crisis ownership, technical rigor, and unflinching camera composure when systems fail under emergency conditions.',
+        targetCompetencies: ['Crisis Ownership', 'Zero-Trust Protocol Execution', 'Postural Gravitas', 'Stakeholder Transparency'],
+        evaluationDimensions: [
+          { name: 'Containment & Triage Rigor', weightPercent: 35, description: 'Immediate network isolation, token revocation, and forensic log preservation.' },
+          { name: 'Executive Transparency', weightPercent: 30, description: 'Proactive, unhurried escalation without panic, cover-ups, or deflection.' },
+          { name: 'Kinesic & Postural Stability', weightPercent: 20, description: 'Anchored camera eye contact (>90%), minimal nervous sway (<12 index), open shoulders.' },
+          { name: 'Cross-Functional Incident Leadership', weightPercent: 15, description: 'Clear role assignment across triage, containment, and client communications.' }
+        ],
+        passingCriteria80: [
+          'Identifies immediate containment actions before attempting destructive fixes',
+          'States clear communication cadence for executive stakeholders',
+          'Maintains centered visual presence with firm eye contact into the camera lens'
+        ],
+        exemplarCriteria100: [
+          'Executes structured incident command system (ICS) triage with zero blame-shifting',
+          'Balances aggressive containment with forensic evidence preservation for regulatory compliance',
+          'Displays unflinching physical composure with under 8.0 postural sway index'
+        ],
+        criticalFailureTraps: [
+          'Deflecting duty by claiming it is outside working hours or someone else’s fault (Dereliction of Duty)',
+          'Concealing the incident from management or trying to cover up logs',
+          'Shifting eyes frantically, nervous laughter, or visibly agitated body language'
+        ],
+        responseFramework: [
+          { step: '1. Immediate Containment', action: 'Isolate affected subnets, invalidate session keys, and lock perimeter.', vocalDelivery: 'Authoritative, calm declaration' },
+          { step: '2. Triage & Preservation', action: 'Capture volatile RAM artifacts and initiate root-cause log tracing.', vocalDelivery: 'Methodical, measured pace' },
+          { step: '3. Stakeholder Cadence', action: 'Open bridge, brief executive leadership, and schedule 30-min updates.', vocalDelivery: 'Reassuring executive closure' }
+        ]
+      },
+      motivationRubric: {
+        scenarioTitle: 'Intrinsic Drive, Resilience & Authentic Self-Differentiation',
+        scenarioContext: 'Evaluates authentic self-awareness, genuine core values, and what fuels your commitment to excel in mission-critical environments.',
+        targetCompetencies: ['Authentic Motivation', 'Resilience & Grit', 'Integrity & Ethics', 'Role Dedication'],
+        evaluationDimensions: [
+          { name: 'Genuineness & Self-Awareness', weightPercent: 35, description: 'Authentic personal history rather than generic corporate buzzwords.' },
+          { name: 'Resilience Under Adversity', weightPercent: 30, description: 'Evidence of overcoming major obstacles through dedication and grit.' },
+          { name: 'Alignment with Company Mission', weightPercent: 20, description: 'Clear understanding of why this specific organization and culture matter.' },
+          { name: 'Acoustic Sincerity', weightPercent: 15, description: 'Natural inflection, heartfelt vocal warmth, and authentic cadence.' }
+        ],
+        passingCriteria80: [
+          'Articulates a clear personal narrative beyond superficial compensation',
+          'Demonstrates how past challenges forged resilience and work ethic',
+          'Speaks with authentic, unforced tone and sincere vocal cadence'
+        ],
+        exemplarCriteria100: [
+          'Connects personal mission directly to the company’s long-term civility and technical vision',
+          'Shares a vulnerable, high-integrity moment demonstrating uncompromising work ethic',
+          'Exhibits deep executive resonance and compelling inspirational presence'
+        ],
+        criticalFailureTraps: [
+          'Delivering hollow AI-generated clichés with zero personal specificity',
+          'Stating purely transactional or cynical motivations',
+          'Disengaged, monotone, or detached vocal delivery'
+        ],
+        responseFramework: [
+          { step: '1. The Core Catalyst', action: 'Share the defining experience that forged your passion for technical excellence.', vocalDelivery: 'Warm, sincere opening' },
+          { step: '2. The Proving Ground', action: 'Explain a crucible moment where grit and integrity triumphed over easy shortcuts.', vocalDelivery: 'Grounded, authentic delivery' },
+          { step: '3. Shared Destiny', action: 'Articulate why you are committed to elevating this team to global leadership.', vocalDelivery: 'Inspirational forward cadence' }
+        ]
+      }
     }
   },
   {
@@ -62,7 +155,87 @@ export const INITIAL_JOB_REQUIREMENTS: JobRequirement[] = [
       ],
       toneScenario: 'Scenario: A client representative aggressively challenges your compliance report during a live conference call. Demonstrate your voice response.',
       pressureScenario: 'Scenario: Regulatory auditors arrive unannounced while your department head is traveling. Walk us through your live video response.',
-      motivationScenario: 'What core personal value drives your dedication to absolute integrity and operational excellence?'
+      motivationScenario: 'What core personal value drives your dedication to absolute integrity and operational excellence?',
+      toneRubric: {
+        scenarioTitle: 'Live Client Conflict & Compliance Boundary Defense',
+        scenarioContext: 'Tests your ability to defend non-negotiable regulatory standards while preserving valuable client relationships under aggressive challenge.',
+        targetCompetencies: ['Regulatory Integrity', 'De-escalation', 'Professional Diplomacy', 'Acoustic Gravitas'],
+        evaluationDimensions: [
+          { name: 'Boundary Steadfastness', weightPercent: 35, description: 'Refuses to dilute compliance standards despite client pushback or threats.' },
+          { name: 'Empathetic De-escalation', weightPercent: 30, description: 'Validates client commercial concerns without becoming defensive or argumentative.' },
+          { name: 'Acoustic Poise & Downward Cadence', weightPercent: 20, description: 'Steady, resonant vocal delivery with zero pitch shakiness or aggressive volume spikes.' },
+          { name: 'Collaborative Resolution Track', weightPercent: 15, description: 'Offers constructive remediation paths and audit support.' }
+        ],
+        passingCriteria80: [
+          'Affirms compliance requirements clearly without conceding legal standards',
+          'Avoids matching the client’s hostile volume or confrontational tone',
+          'Proposes a structured remediation review'
+        ],
+        exemplarCriteria100: [
+          'De-escalates tension within the first 15 seconds through psychological mirroring and calm executive phrasing',
+          'Articulates regulatory protections as safeguards for the client’s long-term business value',
+          'Maintains pristine acoustic resonance (HNR > 18 dB, hesitation < 10%)'
+        ],
+        criticalFailureTraps: [
+          'Capitulating or agreeing to alter audit findings under pressure (Compliance Breach)',
+          'Shouting, insulting, or engaging in a personal argument with the client',
+          'Nervous laughter, stalling, or admitting incompetence'
+        ],
+        responseFramework: [
+          { step: '1. Neutralize Conflict', action: 'Acknowledge client concern calmly and clarify that audit rigor protects both parties.', vocalDelivery: 'Low, centered vocal tone' },
+          { step: '2. Ground in Regulation', action: 'Cite the exact regulatory standard and non-negotiable compliance obligations.', vocalDelivery: 'Measured, objective articulation' },
+          { step: '3. Remediation Runway', action: 'Offer a concrete remediation pathway with actionable timeline support.', vocalDelivery: 'Supportive, reassuring closure' }
+        ]
+      },
+      pressureRubric: {
+        scenarioTitle: 'Unannounced Regulatory Audit Execution Under Leadership Absence',
+        scenarioContext: 'Tests executive composure and immediate procedural compliance when government auditors demand instant records while leadership is away.',
+        targetCompetencies: ['Audit Protocol Compliance', 'Procedural Calm', 'Data Safeguards', 'Executive Presence'],
+        evaluationDimensions: [
+          { name: 'Procedural Protocol Rigor', weightPercent: 40, description: 'Immediate credential verification, escrow room escort, and document custody logs.' },
+          { name: 'Poised Non-Panicked Delivery', weightPercent: 30, description: 'Maintains quiet authority without fluster, defensive pushback, or unauthorized document leaks.' },
+          { name: 'Lens Anchoring & Presence', weightPercent: 20, description: 'Direct gaze, steady respiratory cadence, and balanced posture.' },
+          { name: 'Chain-of-Custody Discipline', weightPercent: 10, description: 'Logging of all requested materials and notifying general counsel.' }
+        ],
+        passingCriteria80: [
+          'Follows standard visitor escort and credentials inspection protocols',
+          'Notifies legal and compliance leadership immediately without obstructing auditors',
+          'Demonstrates professional, unflinching video demeanor'
+        ],
+        exemplarCriteria100: [
+          'Executes complete regulatory staging protocol: credential verification, secure audit room assignment, legal notification, and strict log tracking',
+          'Projects unwavering executive competence and transparency',
+          'Demonstrates masterclass posture and zero nervous mannerisms'
+        ],
+        criticalFailureTraps: [
+          'Refusing entry or obstructing lawful auditors (Regulatory Violation)',
+          'Handing over unrestricted server or filing access without logging or counsel oversight',
+          'Panicking on camera, stammering, or expressing fear of legal trouble'
+        ],
+        responseFramework: [
+          { step: '1. Professional Welcome & ID', action: 'Welcome auditors, inspect credentials, and escort to the secure audit room.', vocalDelivery: 'Warm, professional composure' },
+          { step: '2. Legal & Counsel Escalation', action: 'Notify General Counsel and department head with immediate notice.', vocalDelivery: 'Crisp, structured delivery' },
+          { step: '3. Regulated Intake', action: 'Provide document request forms and maintain unbroken custody logs.', vocalDelivery: 'Decisive, compliant finish' }
+        ]
+      },
+      motivationRubric: {
+        scenarioTitle: 'Ethical Anchor & The Philosophy of Uncompromising Compliance',
+        scenarioContext: 'Evaluates what drives your moral compass and commitment to organizational protection.',
+        targetCompetencies: ['Ethical Fortitude', 'Long-Term Stewardship', 'Systemic Integrity', 'Authentic Voice'],
+        evaluationDimensions: [
+          { name: 'Moral Philosophy', weightPercent: 40, description: 'Clear personal ethos of honesty, accountability, and fiduciary duty.' },
+          { name: 'Real-World Testing', weightPercent: 30, description: 'Demonstrated consistency when ethical choices carried personal or professional cost.' },
+          { name: 'Vocal Authenticity', weightPercent: 30, description: 'Heartfelt, grounded vocal delivery without superficial posturing.' }
+        ],
+        passingCriteria80: ['Defines ethics with personal specificity', 'Avoids generic jargon', 'Projects sincere vocal conviction'],
+        exemplarCriteria100: ['Articulates compliance as moral stewardship of stakeholder trust', 'Demonstrates uncompromising integrity under pressure', 'Vocal resonance reflects profound personal grounding'],
+        criticalFailureTraps: ['Cynical view of compliance as mere paperwork', 'Vague or evasive answers', 'Apathetic tone'],
+        responseFramework: [
+          { step: '1. My Anchor', action: 'State your non-negotiable standard for corporate ethics.', vocalDelivery: 'Resonant and firm' },
+          { step: '2. The Crucible', action: 'Describe a moment where integrity took precedence over convenience.', vocalDelivery: 'Grounded and reflective' },
+          { step: '3. My Contribution', action: 'Affirm how this standard elevates organizational safety.', vocalDelivery: 'Decisive closing' }
+        ]
+      }
     }
   },
   {
@@ -94,7 +267,63 @@ export const INITIAL_JOB_REQUIREMENTS: JobRequirement[] = [
       ],
       toneScenario: 'Scenario: A production deployment breaks during peak traffic due to a merge conflict. Demonstrate your calm vocal response.',
       pressureScenario: 'Scenario: Live database latency spikes by 400% during an enterprise customer presentation. Walk us through your video response.',
-      motivationScenario: 'What fuels your passion to continuously master emerging AI technologies and build enduring software?'
+      motivationScenario: 'What fuels your passion to continuously master emerging AI technologies and build enduring software?',
+      toneRubric: {
+        scenarioTitle: 'P1 Production Outage Leadership & Blameless Post-Mortem',
+        scenarioContext: 'Evaluates architectural leadership and emotional grounding when a critical deployment fails during peak commercial load.',
+        targetCompetencies: ['Incident Command', 'Blameless Problem Solving', 'Technical Composure', 'Rapid Rollback Protocol'],
+        evaluationDimensions: [
+          { name: 'Immediate Rollback Action', weightPercent: 35, description: 'Instant restoration of green build / canary rollback before debugging in prod.' },
+          { name: 'Blameless Civility', weightPercent: 30, description: 'Zero finger-pointing or blaming individual developers; focuses entirely on process and telemetry.' },
+          { name: 'Acoustic Calm Under Fire', weightPercent: 20, description: 'Low, steady vocal cadence (125-145 WPM) that prevents team panic.' },
+          { name: 'Prevention Safeguards', weightPercent: 15, description: 'Establishes automated merge gate tests to prevent recurrence.' }
+        ],
+        passingCriteria80: ['Initiates rollback immediately', 'Maintains respectful, composed voice tone', 'Focuses on systems rather than blame'],
+        exemplarCriteria100: ['Executes instant blue-green traffic diversion, establishes blameless post-mortem framework, and outlines CI/CD gating improvements with unflinching calm', 'Vocal pitch stability > 94% with zero erratic cadence shifts'],
+        criticalFailureTraps: ['Blaming the engineer who merged the PR (Civility Breach)', 'Debugging live in production while users suffer downtime', 'Shouting, panic, or dismissing team members'],
+        responseFramework: [
+          { step: '1. Containment First', action: 'Issue immediate rollback to the previous verified hash.', vocalDelivery: 'Calm, authoritative command' },
+          { step: '2. Triage & Transparency', action: 'Verify customer traffic stabilization and update status page.', vocalDelivery: 'Steady, unhurried cadence' },
+          { step: '3. Blameless Root Cause', action: 'Convene blameless retro to fortify automated CI/CD gating.', vocalDelivery: 'Constructive forward tone' }
+        ]
+      },
+      pressureRubric: {
+        scenarioTitle: 'High-Stakes Live Enterprise Latency Crisis',
+        scenarioContext: 'Tests candidate ability to diagnose and mitigate catastrophic latency spikes in real time during a multi-million-dollar customer demonstration.',
+        targetCompetencies: ['Systems Diagnosis', 'Grace Under Pressure', 'Customer Confidence', 'Graceful Degradation'],
+        evaluationDimensions: [
+          { name: 'Graceful Degradation Protocol', weightPercent: 35, description: 'Enables caching fallbacks and throttles non-essential background jobs.' },
+          { name: 'Customer Communication Poise', weightPercent: 30, description: 'Addresses client with transparency and confidence without defensive excuses.' },
+          { name: 'Camera Presence & Posture', weightPercent: 20, description: 'Firm, relaxed shoulder alignment and steady eye contact.' },
+          { name: 'Root Cause Isolation', weightPercent: 15, description: 'Identifies connection pooling exhaustion or query lock contention.' }
+        ],
+        passingCriteria80: ['Enables fallback mechanisms', 'Communicates honestly without panic', 'Maintains steady camera presence'],
+        exemplarCriteria100: ['Demonstrates masterclass systems command: sheds non-critical query load, shifts to read-replica cache, transparently briefs client on self-healing architecture, and maintains immaculate postural composure (<7 sway)'],
+        criticalFailureTraps: ['Denying the problem or gaslighting the client', 'Panicking or restarting the production database recklessly', 'Defensive anger or fidgeting on camera'],
+        responseFramework: [
+          { step: '1. Transparent Acknowledgment', action: 'Acknowledge latency calmly and trigger automated failover.', vocalDelivery: 'Smooth, unflappable executive composure' },
+          { step: '2. Load Shedding & Cache', action: 'Divert heavy analytics queries to read replicas and isolate primary.', vocalDelivery: 'Technical precision, steady pitch' },
+          { step: '3. Resilient Delivery', action: 'Continue demo seamlessly on cached tier while background resolves.', vocalDelivery: 'Confident, reassuring finish' }
+        ]
+      },
+      motivationRubric: {
+        scenarioTitle: 'Architectural Vision, Craftsmanship & The Pursuit of Enduring Systems',
+        scenarioContext: 'Evaluates your passion for technical excellence, systems integrity, and enduring engineering craftsmanship.',
+        targetCompetencies: ['Engineering Passion', 'Long-Term Systems Thinking', 'Technical Curiosity', 'Culture of Craft'],
+        evaluationDimensions: [
+          { name: 'Dedication to Craft', weightPercent: 40, description: 'Commitment to maintainable, elegant code over quick disposable hacks.' },
+          { name: 'Continuous Mastery', weightPercent: 30, description: 'Active engagement with frontier AI research and autonomous architectures.' },
+          { name: 'Authentic Vocal Resonance', weightPercent: 30, description: 'Inspiring, heartfelt delivery demonstrating genuine love of building.' }
+        ],
+        passingCriteria80: ['Articulates genuine love of systems building', 'Discusses continuous learning habits', 'Speaks with natural enthusiasm'],
+        exemplarCriteria100: ['Articulates a compelling vision for human-centered, resilient AI architectures with profound intellectual depth and contagious passion'],
+        criticalFailureTraps: ['Cynical view of coding or technology', 'Transactional indifference', 'Flat, uninspired monotone'],
+        responseFramework: [
+          { step: '1. The Spark', action: 'Share what initially ignited your obsession with software creation.', vocalDelivery: 'Warm, energized opening' },
+          { step: '2. The Craft', action: 'Explain your engineering philosophy regarding simplicity and durability.', vocalDelivery: 'Deep, deliberate articulation' },
+          { step: '3. The Horizon', action: 'Outline how you intend to push the frontier of intelligent systems here.', vocalDelivery: 'Inspirational forward cadence' }
+        ]
+      }
     }
   }
 ];

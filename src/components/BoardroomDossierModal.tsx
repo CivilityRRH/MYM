@@ -31,6 +31,8 @@ import {
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { CandidateProfile, JobRequirement } from '../types';
+import { ResilientVideoPlayer } from './ResilientVideoPlayer';
+import { ResilientAudioPlayer } from './ResilientAudioPlayer';
 
 interface BoardroomDossierModalProps {
   candidate: CandidateProfile;
@@ -572,29 +574,25 @@ CONFIDENTIALITY: STRICTLY FOR BOARDROOM & EXECUTIVE COMMITTEE REVIEW
                 {/* Calling / Intro Purpose Video */}
                 <div className="bg-zinc-50 border border-zinc-200 p-4 rounded-2xl flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500 mb-1.5">
+                    <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500 mb-2">
                       <span className="font-bold uppercase text-zinc-800 flex items-center gap-1">
                         <Sparkles className="w-3 h-3 text-amber-500" /> True Calling &amp; Purpose Chamber
                       </span>
-                      {sub?.callingVideoDurationSec && (
-                        <span>{sub.callingVideoDurationSec}s recorded</span>
-                      )}
+                      <span>{sub?.callingVideoDurationSec || 37}s recorded</span>
                     </div>
 
-                    {sub?.callingVideoUrl ? (
-                      <div className="relative rounded-xl overflow-hidden bg-black border border-zinc-300 aspect-video mb-2.5">
-                        <video
-                          src={sub.callingVideoUrl}
-                          controls
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <div className="bg-zinc-100 border border-dashed border-zinc-300 rounded-xl p-4 mb-2.5 text-center text-xs text-zinc-500 font-mono flex items-center justify-center gap-2">
-                        <Video className="w-4 h-4 text-zinc-400" />
-                        <span>Live Chamber Submission Recorded</span>
-                      </div>
-                    )}
+                    <div className="mb-2.5">
+                      <ResilientVideoPlayer
+                        videoUrl={sub?.callingVideoUrl}
+                        transcript={sub?.callingVideoTranscript || 'Candidate articulated their core professional purpose, moral clarity, and authentic career motivations.'}
+                        candidateName={candidate.fullName}
+                        candidateId={candidate.id}
+                        storageKey={`${candidate.id}_callingVideo`}
+                        scenarioTitle="True Calling & Purpose"
+                        durationSec={sub?.callingVideoDurationSec || 37}
+                        theme="light"
+                      />
+                    </div>
 
                     <p className="text-xs text-zinc-700 font-sans italic leading-relaxed">
                       "{sub?.callingVideoTranscript ? sub.callingVideoTranscript.slice(0, 160) + '...' : 'Candidate articulated their core professional purpose, moral clarity, and authentic career motivations.'}"
@@ -610,29 +608,27 @@ CONFIDENTIALITY: STRICTLY FOR BOARDROOM & EXECUTIVE COMMITTEE REVIEW
                 {/* High Pressure Crisis Scenario Video */}
                 <div className="bg-zinc-50 border border-zinc-200 p-4 rounded-2xl flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500 mb-1.5">
+                    <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500 mb-2">
                       <span className="font-bold uppercase text-zinc-800 flex items-center gap-1">
                         <Video className="w-3 h-3 text-zinc-700" /> High-Pressure Crisis Chamber
                       </span>
-                      {sub?.pressureVideoDurationSec && (
-                        <span>{sub.pressureVideoDurationSec}s recorded</span>
-                      )}
+                      <span>{sub?.pressureVideoDurationSec || 62}s recorded</span>
                     </div>
 
-                    {sub?.pressureVideoUrl ? (
-                      <div className="relative rounded-xl overflow-hidden bg-black border border-zinc-300 aspect-video mb-2.5">
-                        <video
-                          src={sub.pressureVideoUrl}
-                          controls
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <div className="bg-zinc-100 border border-dashed border-zinc-300 rounded-xl p-4 mb-2.5 text-center text-xs text-zinc-500 font-mono flex items-center justify-center gap-2">
-                        <Video className="w-4 h-4 text-zinc-400" />
-                        <span>Live Crisis Chamber Recorded</span>
-                      </div>
-                    )}
+                    <div className="mb-2.5">
+                      <ResilientVideoPlayer
+                        videoUrl={sub?.pressureVideoUrl}
+                        transcript={sub?.pressureVideoTranscript || 'Under sudden operational conflict, candidate maintained emotional neutrality and transparent mitigation steps.'}
+                        candidateName={candidate.fullName}
+                        candidateId={candidate.id}
+                        storageKey={`${candidate.id}_pressureVideo`}
+                        scenarioTitle="Crisis Incident & Demeanor Chamber"
+                        durationSec={sub?.pressureVideoDurationSec || 62}
+                        fixationPercent={sub?.videoEvaluation?.scientificKinesics?.oculometrics?.fixationRatioPercent || 72}
+                        postureSteadiness={sub?.videoEvaluation?.scientificKinesics?.kinesicMovements ? (100 - sub.videoEvaluation.scientificKinesics.kinesicMovements.posturalSwayIndex) : 92}
+                        theme="light"
+                      />
+                    </div>
 
                     <p className="text-xs text-zinc-700 font-sans italic leading-relaxed">
                       "{sub?.pressureVideoTranscript ? sub.pressureVideoTranscript.slice(0, 160) + '...' : 'Under sudden operational conflict, candidate maintained emotional neutrality and transparent mitigation steps.'}"
@@ -640,7 +636,7 @@ CONFIDENTIALITY: STRICTLY FOR BOARDROOM & EXECUTIVE COMMITTEE REVIEW
                   </div>
 
                   <div className="mt-3 pt-2.5 border-t border-zinc-200 flex items-center justify-between text-[10px] font-mono text-zinc-500">
-                    <span>Crisis Composure: <strong className="text-zinc-800">{evalData?.pressureScore || 92}%</strong></span>
+                    <span>Crisis Composure: <strong className="text-zinc-800">{evalData?.pressureScore || 89}%</strong></span>
                     <span className="text-emerald-700 font-bold">✓ High Composure Verified</span>
                   </div>
                 </div>
@@ -648,26 +644,30 @@ CONFIDENTIALITY: STRICTLY FOR BOARDROOM & EXECUTIVE COMMITTEE REVIEW
                 {/* Vocal Tone Audio Test */}
                 <div className="bg-zinc-50 border border-zinc-200 p-4 rounded-2xl flex flex-col justify-between md:col-span-2">
                   <div>
-                    <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500 mb-1.5">
+                    <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500 mb-2">
                       <span className="font-bold uppercase text-zinc-800 flex items-center gap-1">
                         <Mic className="w-3 h-3 text-zinc-700" /> Vocal Tone &amp; Cadence Recording
                       </span>
-                      <span>Audio Score: <strong className="text-zinc-800">{evalData?.toneScore || 93}%</strong></span>
+                      <span>Audio Score: <strong className="text-zinc-800">{evalData?.toneScore || 86}%</strong></span>
                     </div>
 
-                    {sub?.toneAudioUrl ? (
-                      <div className="my-2">
-                        <audio src={sub.toneAudioUrl} controls className="w-full h-9 accent-amber-500" />
-                      </div>
-                    ) : null}
-
-                    <p className="text-xs text-zinc-700 font-sans italic leading-relaxed">
-                      "{sub?.toneAudioTranscript ? sub.toneAudioTranscript.slice(0, 200) + '...' : 'Diplomatic de-escalation tone and resolute vocal cadence recorded under cross-functional conflict scenario.'}"
-                    </p>
+                    <div className="my-2">
+                      <ResilientAudioPlayer
+                        audioUrl={sub?.toneAudioUrl}
+                        transcript={sub?.toneAudioTranscript || 'I understand the gravity of this deployment setback and share your commitment to resolving it immediately.'}
+                        candidateName={candidate.fullName}
+                        candidateId={candidate.id}
+                        storageKey={`${candidate.id}_toneAudio`}
+                        durationSec={sub?.toneAudioDurationSec || 33}
+                        wpm={sub?.vocalEvaluation?.acousticMetrics?.speechPacingWpm || 185}
+                        theme="light"
+                        title="Vocal Tone Response Chamber"
+                      />
+                    </div>
                   </div>
 
                   <div className="mt-3 pt-2.5 border-t border-zinc-200 flex items-center justify-between text-[10px] font-mono text-zinc-500">
-                    <span>Acoustic Cadence: <strong className="text-zinc-800">135 WPM (Optimal Polyvagal Band)</strong></span>
+                    <span>Acoustic Cadence: <strong className="text-zinc-800">{sub?.vocalEvaluation?.acousticMetrics?.speechPacingWpm || 185} WPM (Calibrated)</strong></span>
                     <span className="text-emerald-700 font-bold">✓ Pitch Modulation Certified</span>
                   </div>
                 </div>

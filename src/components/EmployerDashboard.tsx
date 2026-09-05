@@ -21,6 +21,8 @@ import { ClassroomCandidateSyncResult } from '../services/googleClassroomService
 import { RecentHiresFeed } from './RecentHiresFeed';
 import { CompanyAdsMarketplace } from './CompanyAdsMarketplace';
 import { TrillionDollarTurnoverLedger } from './TrillionDollarTurnoverLedger';
+import { CandidateScoringDistributionChart } from './CandidateScoringDistributionChart';
+import { ScenarioRubricCard } from './ScenarioRubricCard';
 import { googleSignIn, getAccessToken } from '../lib/firebase';
 import {
   Users,
@@ -116,7 +118,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
   onResetBlankWorkspace,
   onLoadDemoData,
 }) => {
-  const [activeTab, setActiveTab] = useState<'candidates' | 'turnover-engine' | 'builder' | 'free-ads' | 'radar' | 'vault' | 'google-forms' | 'google-tasks' | 'google-classroom' | 'outbound-scout' | 'calendar' | 'training-vault' | 'employee-journeys' | 'recent-hires'>('turnover-engine');
+  const [activeTab, setActiveTab] = useState<'candidates' | 'scoring-distribution' | 'turnover-engine' | 'builder' | 'free-ads' | 'radar' | 'vault' | 'google-forms' | 'google-tasks' | 'google-classroom' | 'outbound-scout' | 'calendar' | 'training-vault' | 'employee-journeys' | 'recent-hires'>('turnover-engine');
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateProfile | null>(null);
   const [dossierCandidate, setDossierCandidate] = useState<CandidateProfile | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(getAccessToken());
@@ -817,6 +819,18 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
               <Users className="w-3.5 h-3.5" /> Candidate Ledger ({sortedCandidates.length})
             </button>
             <button
+              id="tab-btn-scoring-distribution"
+              onClick={() => setActiveTab('scoring-distribution')}
+              className={`py-4 px-1 border-b-2 transition-all flex items-center gap-2 ${
+                activeTab === 'scoring-distribution'
+                  ? 'border-emerald-400 text-emerald-300 font-semibold'
+                  : 'border-transparent text-white/50 hover:text-white'
+              }`}
+            >
+              <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Scoring Distribution & Heart</span>
+            </button>
+            <button
               id="tab-btn-builder"
               onClick={() => setActiveTab('builder')}
               className={`py-4 px-1 border-b-2 transition-all flex items-center gap-2 ${
@@ -1068,7 +1082,16 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-6">
+                <CandidateScoringDistributionChart
+                  candidates={sortedCandidates}
+                  selectedCandidateId={selectedCandidate?.id}
+                  trainingSessions={trainingSessions}
+                  onSelectCandidate={(cand) => setSelectedCandidate(cand)}
+                  onOpenDossier={(cand) => setDossierCandidate(cand)}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sortedCandidates.map((cand) => (
                   <div
                     key={cand.id}
@@ -1208,6 +1231,47 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
                   </div>
                 ))}
               </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 1.5: Dedicated Real-Time Scoring Distribution & Heart Diagnostic Tab */}
+        {activeTab === 'scoring-distribution' && (
+          <div className="p-6 space-y-6">
+            <div className="bg-[#121212] p-6 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <h2 className="font-serif italic text-2xl text-white font-bold tracking-tight">
+                    Executive Scoring Distribution & Heart Matrix
+                  </h2>
+                  <span className="text-[10px] font-mono uppercase tracking-widest px-2.5 py-0.5 bg-rose-500/10 text-rose-300 border border-rose-500/30">
+                    Real-Time Telemetry & Coachability
+                  </span>
+                </div>
+                <p className="text-xs text-white/60 mt-1 font-sans">
+                  Interactive multi-axis radar, distribution bars, and growth velocity charts powered by Recharts across Genuineness, Composure, Adequacy, and Cultural Fit.
+                </p>
+              </div>
+            </div>
+
+            {sortedCandidates.length === 0 ? (
+              <div className="bg-[#121212] border border-white/10 p-14 text-center space-y-4 font-mono">
+                <Users className="w-8 h-8 mx-auto text-white/40" />
+                <h3 className="text-white font-bold text-base uppercase tracking-wider">No Candidates In Pipeline</h3>
+                <p className="text-xs text-white/60 max-w-lg mx-auto font-sans">
+                  Submit an assessment in the Candidate Portal to generate live Recharts telemetry.
+                </p>
+              </div>
+            ) : (
+              <CandidateScoringDistributionChart
+                candidates={sortedCandidates}
+                selectedCandidateId={selectedCandidate?.id}
+                trainingSessions={trainingSessions}
+                onSelectCandidate={(cand) => setSelectedCandidate(cand)}
+                onOpenDossier={(cand) => setDossierCandidate(cand)}
+              />
             )}
           </div>
         )}
@@ -1535,6 +1599,15 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
                   onChange={(e) => setToneScenarioPrompt(e.target.value)}
                   className="w-full p-3 bg-[#0A0A0A] border border-white/15 text-xs text-white focus:border-white focus:outline-none font-sans"
                 />
+                {jobRequirements.find(j => j.title === roleTitle || j.roleName === roleName)?.customQuestions?.toneRubric && (
+                  <div className="pt-2">
+                    <ScenarioRubricCard
+                      rubric={jobRequirements.find(j => j.title === roleTitle || j.roleName === roleName)?.customQuestions?.toneRubric}
+                      title="Tone Testing Evaluation Rubric & Question Framing"
+                      defaultExpanded={false}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* High Pressure Testing */}
@@ -1552,6 +1625,15 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
                   onChange={(e) => setPressureScenarioPrompt(e.target.value)}
                   className="w-full p-3 bg-[#0A0A0A] border border-white/15 text-xs text-white focus:border-white focus:outline-none font-sans"
                 />
+                {jobRequirements.find(j => j.title === roleTitle || j.roleName === roleName)?.customQuestions?.pressureRubric && (
+                  <div className="pt-2">
+                    <ScenarioRubricCard
+                      rubric={jobRequirements.find(j => j.title === roleTitle || j.roleName === roleName)?.customQuestions?.pressureRubric}
+                      title="High-Pressure Testing Evaluation Rubric & Question Framing"
+                      defaultExpanded={false}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Deep Motivation & Uniqueness */}

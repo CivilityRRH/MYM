@@ -23,6 +23,25 @@ export interface PricingPlan {
   recommended?: boolean;
 }
 
+export interface ScenarioRubric {
+  scenarioTitle: string;
+  scenarioContext: string;
+  targetCompetencies: string[];
+  evaluationDimensions: {
+    name: string;
+    weightPercent: number;
+    description: string;
+  }[];
+  passingCriteria80: string[];
+  exemplarCriteria100: string[];
+  criticalFailureTraps: string[];
+  responseFramework: {
+    step: string;
+    action: string;
+    vocalDelivery: string;
+  }[];
+}
+
 export interface CustomQuestions {
   ethics: string[];
   etiquette: string[];
@@ -30,6 +49,9 @@ export interface CustomQuestions {
   toneScenario: string;
   pressureScenario: string;
   motivationScenario: string;
+  toneRubric?: ScenarioRubric;
+  pressureRubric?: ScenarioRubric;
+  motivationRubric?: ScenarioRubric;
 }
 
 export interface JobRequirement {
@@ -108,6 +130,37 @@ export interface VocalScoringResult {
   whatNeedsImprovementToReach100: string;
   whatShouldHaveBeenDoneInstead: string;
   exemplarVocalDelivery: string;
+  jobAdequacyAudit?: {
+    score: number; // 0.0 - 100.0
+    verdict: string;
+    taskExecutionAnalysis: string;
+  };
+  positiveLightAudit?: {
+    score: number; // 0.0 - 100.0
+    verdict: string;
+    culturalImpactAnalysis: string;
+  };
+  doingItTheRightWayAudit?: {
+    score: number; // 0.0 - 100.0
+    verdict: string;
+    proceduralCorrectnessAnalysis: string;
+  };
+  genuinenessDiagnostic?: {
+    score: number; // 0.0 - 100.0
+    classification: 'genuine_masterclass' | 'authoritative_command' | 'nervous_sincerity' | 'calculated_acting' | 'callous_apathy';
+    classificationLabel: string;
+    acousticVocalCorrelation?: string;
+    jitterMovementCorrelation?: string;
+    trainingGuidance: string;
+  };
+  authoritativeDecisivenessAudit?: AuthoritativeDecisivenessAudit;
+  toneDecisivenessCalibration?: ToneDecisivenessCalibrationResult;
+  cueContributionMap?: CueContributionItem[];
+  retryRecommendation?: RetryRecommendation;
+  recordedAttempts?: RecordedResponseAttempt[];
+  currentChanceIndex?: number;
+  microFlawPrecisionDiagnostic?: MicroFlawPrecisionDiagnostic;
+  toxicHostilityAudit?: ToxicHostilityAudit;
   keyStrengths: string[];
   coachingTipsForPerfection: string[];
   evaluatedAt: string;
@@ -209,9 +262,280 @@ export interface VideoScoringResult {
   whatNeedsImprovementToReach100: string;
   whatShouldHaveBeenDoneInstead: string;
   exemplarCrisisResponse: string;
+  // 3 Truth-Testing Pillars:
+  jobAdequacyAudit?: {
+    score: number; // 0.0 - 100.0
+    verdict: 'Adequate & Action-Oriented' | 'Leadership-Adequate (Firm & Corrective)' | 'Leadership-Adequate (Decisive Authority)' | 'Marginal Execution' | 'Dereliction / Inadequate Execution';
+    taskExecutionAnalysis: string;
+    protocolCompliancePercent: number;
+  };
+  positiveLightAudit?: {
+    score: number; // 0.0 - 100.0
+    verdict: 'Uplifting Leadership' | 'Constructive Standard' | 'Callous / Hostile / Toxic Demeanor';
+    culturalImpactAnalysis: string;
+    reassuranceAndToneScore: number;
+  };
+  doingItTheRightWayAudit?: {
+    score: number; // 0.0 - 100.0
+    verdict: 'Exemplary Method' | 'Needs Methodical Guidance' | 'Wrong / Detrimental Approach';
+    proceduralCorrectnessAnalysis: string;
+    stepByStepRigorScore: number;
+  };
+  genuinenessDiagnostic?: {
+    score: number; // 0.0 - 100.0
+    classification: 'genuine_masterclass' | 'authoritative_command' | 'nervous_sincerity' | 'calculated_acting' | 'callous_apathy';
+    classificationLabel: string;
+    jitterMovementCorrelation: string;
+    trainingGuidance: string;
+  };
+  authoritativeDecisivenessAudit?: AuthoritativeDecisivenessAudit;
+  toneDecisivenessCalibration?: ToneDecisivenessCalibrationResult;
+  cueContributionMap?: CueContributionItem[];
+  retryRecommendation?: RetryRecommendation;
+  recordedAttempts?: RecordedResponseAttempt[];
+  currentChanceIndex?: number;
+  microFlawPrecisionDiagnostic?: MicroFlawPrecisionDiagnostic;
+  toxicHostilityAudit?: ToxicHostilityAudit;
   keyStrengths: string[];
   coachingTipsForPerfection: string[];
   evaluatedAt: string;
+}
+
+export interface MicroFlawItem {
+  flawId: string;
+  category: 'Civility & Ad-Hominem' | 'Scenario Substance' | 'Acoustic-Verbal Dissonance' | 'Accountability & Blame' | 'Procedural Completeness';
+  severity: 'critical' | 'moderate' | 'minor';
+  identifiedExcerpt: string;
+  issueNamed: string;
+  whyItFailsScenario: string;
+  positiveGrowthCoaching: string;
+  exemplarCorrection: string;
+}
+
+export interface MicroFlawPrecisionDiagnostic {
+  hasFlaws: boolean;
+  flawCount: number;
+  highestSeverity: 'critical_violation' | 'significant_deficiency' | 'minor_polish' | 'none_detected';
+  flaws: MicroFlawItem[];
+  truthTestingSummary: string;
+}
+
+export interface ToxicHostilityAudit {
+  isToxic: boolean;
+  insultDetected?: string;
+  civilityBreachReason?: string;
+  penaltyAppliedPercent: number;
+}
+
+export interface AuthoritativeDecisivenessAudit {
+  score: number; // 0.0 - 100.0
+  decisivenessTier: 'Commanding Executive' | 'Firm Professional' | 'Developing Authority' | 'Hesitant / Passive' | 'Detached / Derelict';
+  isAuthoritativeFirm: boolean;
+  tempoCadenceAnalysis: string;
+  jitterResonanceAnalysis: string;
+  terminalInflectionAnalysis: string;
+  commandVerbsDetected: string[];
+  leadershipStanceSummary: string;
+  calibrationSummary?: string;
+  calibratedLeadershipLabel?: string;
+}
+
+export interface ToneDecisivenessBenchmarkProfile {
+  score: number; // 0 - 100
+  markersDetected: string[];
+  characteristicSummary: string;
+  strategicStrengths: string[];
+  crisisBlindspots: string[];
+  acousticFootprint: string;
+}
+
+export interface CorrectiveInterventionItem {
+  interventionType: 'protocol_enforcement' | 'boundary_setting' | 'triage_prioritization' | 'halt_improper_procedure' | 'clear_accountability_assignment';
+  typeLabel: string;
+  excerpt: string;
+  rationale: string;
+  leadershipAdequacyWeight: number; // e.g. +14 pts
+}
+
+export interface ToneDecisivenessCalibrationResult {
+  neutralDiplomaticBenchmark: ToneDecisivenessBenchmarkProfile;
+  authoritativeDecisiveBenchmark: ToneDecisivenessBenchmarkProfile;
+  calibrationRatio: number; // Authoritative / Diplomatic parity ratio
+  biasMitigationApplied: boolean;
+  biasType: 'warmth_overindexing' | 'corrective_underappreciation' | 'balanced_mastery' | 'passive_diplomacy';
+  jobAdequacyCalibrationOffset: number; // Calibrated points applied to prevent under-indexing
+  culturalFitCalibrationOffset: number; // Parity points applied to cultural fit
+  calibratedToneLabel: string; // e.g. "Authoritative & Decisive (Leadership-Adequate)" instead of just "Warm & Resonant"
+  calibratedLeadershipClassification:
+    | 'Leadership-Adequate (Firm & Corrective Command)'
+    | 'Leadership-Adequate (Decisive Authority)'
+    | 'Leadership-Adequate (Balanced Executive Stance)'
+    | 'Diplomatic & Conciliatory'
+    | 'Developing Authority (Needs Decisive Grounding)';
+  correctiveInterventions: CorrectiveInterventionItem[];
+  antiWarmthBiasRationale: string;
+  benchmarkingComparisonNarrative: string;
+}
+
+export interface CueContributionItem {
+  cueName: string;
+  category: 'Acoustic / Vocal' | 'Kinesic / Physical' | 'Semantic / Command';
+  measuredValue: string;
+  impactOnAdequacy: number; // e.g. +14 or -10
+  impactOnCulturalFit: number; // e.g. +12 or -25
+  rationale: string;
+}
+
+export interface EvaluationCuesInput {
+  // Audio Cues
+  speechTempoWpm?: number;
+  jitterPercent?: number;
+  shimmerPercent?: number;
+  hnrDb?: number;
+  pitchStabilityPercent?: number;
+  pitchF0Hz?: number;
+  silenceHesitationRatioPercent?: number;
+  pauseCount?: number;
+  averageDb?: number;
+  peakDb?: number;
+  spectralWarmthRating?: string;
+  terminalInflectionPattern?: 'definitive_downward' | 'questioning_uptalk' | 'steady_neutral' | 'flat_monotone';
+  vocalTremorClassification?: 'executive_calm' | 'regulated_alert' | 'sympathetic_tremor';
+
+  // Video / Kinesic Cues
+  presenceDetected?: boolean;
+  fixationRatioPercent?: number;
+  saccadeFrequencyPerMin?: number;
+  gazeAversionPattern?: 'direct_anchored' | 'cognitive_gating_lateral' | 'nervous_downward_avoidance' | 'hyper_vigilant_scanning' | 'no_face_detected';
+  posturalSwayIndex?: number;
+  postureSteadinessPercent?: number;
+  adaptorFrequency?: string;
+  shoulderTensionScore?: number;
+  illustratorEffectiveness?: string;
+  facialComposureRating?: string;
+  microExpressionStatus?: string;
+
+  // Semantic & Contextual Cues
+  transcript: string;
+  transcriptText?: string; // alias
+  candidateName?: string;
+  roleTitle?: string;
+  scenarioTitle?: string;
+  scenarioContext?: string; // alias for scenarioPrompt
+  scenarioPrompt?: string;
+  audioDurationSec?: number;
+  attemptNumber?: number; // 1 or 2 (defaults to 1)
+  maxChancesAllowed?: number; // defaults to 2 recorded response chances
+  previousAttempt?: any;
+}
+
+export interface RetryRecommendation {
+  shouldRetry: boolean;
+  attemptNumber: number; // 1 or 2
+  maxChancesAllowed: number; // 2 recorded response chances
+  chancesRemaining: number; // 1 or 0
+  decisionPrompt: string; // "Retry Recommended • Use Chance 2 of 2" or "Executive Certified • Chance 2 Optional"
+  recommendationReason: string;
+  detectedCuesSummary: {
+    speechTempo: { wpm: number; status: 'optimal' | 'hesitant' | 'rushed'; label: string };
+    jitterTremor: { percent: number; status: 'calm' | 'alert' | 'jittery'; label: string };
+    toneInflection: { type: string; status: 'commanding' | 'uptalk' | 'neutral'; label: string };
+    kinesicsFixation?: { percent: number; status: 'anchored' | 'wandering'; label: string };
+    authoritativeFirmness: { tier: string; score: number; isFirm: boolean };
+  };
+  weightedImpacts: {
+    jobAdequacyScore: number;
+    culturalFitScore: number;
+    proceduralRigorScore: number;
+    overallScore: number;
+  };
+  primaryTargetArea: string;
+  actionableAdjustments: string[];
+  exemplarAdjustmentCue: string;
+}
+
+export interface RecordedResponseAttempt {
+  attemptNumber: 1 | 2;
+  mediaUrl: string;
+  mediaType: 'audio' | 'video';
+  durationSec: number;
+  transcript: string;
+  evaluation: EvaluationLogicResult;
+  recordedAt: string;
+  cues: {
+    speechTempoWpm: number;
+    jitterPercent: number;
+    hnrDb?: number;
+    pitchStabilityPercent: number;
+    fixationRatioPercent?: number;
+    posturalSwayIndex?: number;
+    postureSteadinessPercent?: number;
+  };
+}
+
+export interface EvaluationWeightsConfig {
+  jobAdequacy: {
+    operationalDecisiveness: number; // default: 0.35
+    proceduralContainment: number;   // default: 0.30
+    tempoCadenceExecution: number;   // default: 0.20
+    somaticSteadiness: number;       // default: 0.15
+  };
+  culturalFit: {
+    constructiveLeadershipFirmness: number; // default: 0.35 (Distinguishes firm decisiveness from hostility)
+    psychologicalSafetyReassurance: number; // default: 0.25
+    moralAccountabilityDutyOfCare: number;  // default: 0.25 (Zero-tolerance for dereliction)
+    authenticAffectCongruence: number;      // default: 0.15
+  };
+  proceduralRigor: {
+    stepByStepContainment: number;   // default: 0.40
+    transparentEscalation: number;   // default: 0.30
+    ethicalCompliance: number;       // default: 0.30
+  };
+}
+
+export interface EvaluationLogicResult {
+  overallScore: number;
+  isPassing: boolean;
+  exactGrade: string;
+  ladderStatus: string;
+  jobAdequacyAudit: {
+    score: number;
+    verdict: 'Adequate & Action-Oriented' | 'Leadership-Adequate (Firm & Corrective)' | 'Leadership-Adequate (Decisive Authority)' | 'Marginal Execution' | 'Dereliction / Inadequate Execution';
+    taskExecutionAnalysis: string;
+    protocolCompliancePercent: number;
+    decisiveCommandScore: number;
+  };
+  positiveLightAudit: {
+    score: number;
+    verdict: 'Uplifting Leadership' | 'Constructive Standard' | 'Callous / Hostile / Toxic Demeanor';
+    culturalImpactAnalysis: string;
+    reassuranceAndToneScore: number;
+    firmnessClassification: 'commanding_reassuring' | 'respectful_firmness' | 'passive_hesitant' | 'toxic_callousness';
+  };
+  doingItTheRightWayAudit: {
+    score: number;
+    verdict: 'Exemplary Method' | 'Needs Methodical Guidance' | 'Wrong / Detrimental Approach';
+    proceduralCorrectnessAnalysis: string;
+    stepByStepRigorScore: number;
+  };
+  genuinenessDiagnostic: {
+    score: number;
+    classification: 'genuine_masterclass' | 'authoritative_command' | 'nervous_sincerity' | 'calculated_acting' | 'callous_apathy';
+    classificationLabel: string;
+    jitterMovementCorrelation: string;
+    acousticVocalCorrelation?: string;
+    trainingGuidance: string;
+  };
+  authoritativeDecisivenessAudit: AuthoritativeDecisivenessAudit;
+  toneDecisivenessCalibration?: ToneDecisivenessCalibrationResult;
+  cueContributionMap: CueContributionItem[];
+  retryRecommendation?: RetryRecommendation;
+  microFlawPrecisionDiagnostic?: MicroFlawPrecisionDiagnostic;
+  toxicHostilityAudit?: ToxicHostilityAudit;
+  keyStrengths: string[];
+  targetedCoachingRecommendations: string[];
+  whatShouldHaveBeenDoneInstead: string;
+  exemplarCrisisResponse: string;
 }
 
 export interface TrueCallingEvaluationResult {

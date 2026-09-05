@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { VideoScoringResult } from '../types';
 import { CameraDiagnosticOverlay } from './CameraDiagnosticOverlay';
+import { getMediaObjectUrl, testMediaUrlPlayable } from '../lib/mediaStorage';
 import {
   Video,
   Play,
@@ -41,6 +42,7 @@ interface CandidateVideoReviewPlayerProps {
   videoEvaluation?: VideoScoringResult;
   onReEvaluate?: () => void;
   isEvaluating?: boolean;
+  candidateId?: string;
 }
 
 export const CandidateVideoReviewPlayer: React.FC<CandidateVideoReviewPlayerProps> = ({
@@ -53,7 +55,8 @@ export const CandidateVideoReviewPlayer: React.FC<CandidateVideoReviewPlayerProp
   videoDurationSec = 45,
   videoEvaluation,
   onReEvaluate,
-  isEvaluating = false
+  isEvaluating = false,
+  candidateId
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -68,48 +71,83 @@ export const CandidateVideoReviewPlayer: React.FC<CandidateVideoReviewPlayerProp
   const [selectedMarkerTime, setSelectedMarkerTime] = useState<number | null>(null);
   const [effectiveVideoSrc, setEffectiveVideoSrc] = useState<string | null>(null);
   const [videoLoadError, setVideoLoadError] = useState(false);
+  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Convert base64 data URL to streamable Blob URL for smooth hardware playback
+  // Convert base64 data URL or retrieve from IndexedDB for smooth hardware playback
   useEffect(() => {
-    if (!videoUrl) {
-      setEffectiveVideoSrc(null);
-      setVideoLoadError(false);
-      return;
-    }
+    let active = true;
 
-    if (videoUrl.startsWith('blob:') || videoUrl.startsWith('http')) {
-      setEffectiveVideoSrc(videoUrl);
-      setVideoLoadError(false);
-      return;
-    }
-
-    if (videoUrl.startsWith('data:video')) {
-      try {
-        const parts = videoUrl.split(',');
-        const mimeMatch = parts[0].match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : 'video/webm';
-        const bstr = atob(parts[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
+    async function resolveSource() {
+      if (!videoUrl) {
+        // Try IndexedDB lookup if candidateId provided
+        if (candidateId) {
+          const idbUrl = await getMediaObjectUrl(`${candidateId}_pressureVideo`);
+          if (idbUrl && active) {
+            setEffectiveVideoSrc(idbUrl);
+            setVideoLoadError(false);
+            return;
+          }
         }
-        const blob = new Blob([u8arr], { type: mime });
-        const objectUrl = URL.createObjectURL(blob);
-        setEffectiveVideoSrc(objectUrl);
-        setVideoLoadError(false);
-
-        return () => {
-          URL.revokeObjectURL(objectUrl);
-        };
-      } catch (e) {
-        console.warn('Error creating Blob URL for video playback:', e);
-        setEffectiveVideoSrc(videoUrl);
+        const latestUrl = await getMediaObjectUrl('latest_pressureVideo');
+        if (latestUrl && active) {
+          setEffectiveVideoSrc(latestUrl);
+          setVideoLoadError(false);
+          return;
+        }
+        if (active) {
+          setEffectiveVideoSrc(null);
+          setVideoLoadError(false);
+        }
+        return;
       }
-    } else {
-      setEffectiveVideoSrc(videoUrl);
+
+      // If it's a blob:, data: or http URL, verify it's playable
+      if (videoUrl.startsWith('data:video')) {
+        setEffectiveVideoSrc(videoUrl);
+        setVideoLoadError(false);
+        return;
+      }
+
+      const isPlayable = await testMediaUrlPlayable(videoUrl);
+      if (isPlayable && active) {
+        setEffectiveVideoSrc(videoUrl);
+        setVideoLoadError(false);
+        return;
+      }
+
+      // If current URL failed, look up in IndexedDB
+      if (candidateId) {
+        const idbUrl = await getMediaObjectUrl(`${candidateId}_pressureVideo`);
+        if (idbUrl && active) {
+          setEffectiveVideoSrc(idbUrl);
+          setVideoLoadError(false);
+          return;
+        }
+      }
+
+      const latestFallback = await getMediaObjectUrl('latest_pressureVideo');
+      if (latestFallback && active) {
+        setEffectiveVideoSrc(latestFallback);
+        setVideoLoadError(false);
+        return;
+      }
+
+      if (active) {
+        setEffectiveVideoSrc(null);
+        setVideoLoadError(false);
+      }
+      return;
     }
-  }, [videoUrl]);
+
+    resolveSource();
+
+    return () => {
+      active = false;
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [videoUrl, candidateId]);
 
   // Sync volume with video element
   useEffect(() => {
@@ -129,13 +167,37 @@ export const CandidateVideoReviewPlayer: React.FC<CandidateVideoReviewPlayerProp
   // Fallback timer simulation when no real media stream or simulated avatar
   const simTimerRef = useRef<any>(null);
 
+  const hasPlayableNativeVideo = Boolean(effectiveVideoSrc && !videoLoadError);
+
   useEffect(() => {
-    if (!effectiveVideoSrc) {
+    if (!hasPlayableNativeVideo) {
       if (isPlaying) {
+        // Trigger voice synthesis of spoken transcript if available
+        if (videoTranscript && typeof window !== 'undefined' && window.speechSynthesis && !synthRef.current) {
+          const utterance = new SpeechSynthesisUtterance(videoTranscript);
+          utterance.rate = playbackSpeed;
+          utterance.pitch = 0.98;
+          utterance.volume = isMuted ? 0 : volume;
+
+          const voices = window.speechSynthesis.getVoices();
+          const naturalVoice = voices.find((v) => (v.name.includes('Natural') || v.name.includes('Daniel') || v.name.includes('Alex')) && v.lang.startsWith('en')) || voices.find((v) => v.lang.startsWith('en'));
+          if (naturalVoice) utterance.voice = naturalVoice;
+
+          utterance.onend = () => {
+            synthRef.current = null;
+          };
+          synthRef.current = utterance;
+          window.speechSynthesis.speak(utterance);
+        }
+
         simTimerRef.current = setInterval(() => {
           setCurrentTime((prev) => {
             if (prev >= duration) {
               setIsPlaying(false);
+              if (synthRef.current && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                synthRef.current = null;
+              }
               return 0;
             }
             return prev + 1;
@@ -143,15 +205,22 @@ export const CandidateVideoReviewPlayer: React.FC<CandidateVideoReviewPlayerProp
         }, 1000 / playbackSpeed);
       } else {
         if (simTimerRef.current) clearInterval(simTimerRef.current);
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          synthRef.current = null;
+        }
       }
       return () => {
         if (simTimerRef.current) clearInterval(simTimerRef.current);
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
       };
     }
-  }, [isPlaying, effectiveVideoSrc, duration, playbackSpeed]);
+  }, [isPlaying, hasPlayableNativeVideo, duration, playbackSpeed, videoTranscript, isMuted, volume]);
 
   const handleTogglePlay = () => {
-    if (effectiveVideoSrc && videoRef.current) {
+    if (hasPlayableNativeVideo && videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
         setIsPlaying(false);
@@ -161,7 +230,8 @@ export const CandidateVideoReviewPlayer: React.FC<CandidateVideoReviewPlayerProp
           playPromise
             .then(() => setIsPlaying(true))
             .catch((err) => {
-              console.warn('Playback error / user gesture required:', err);
+              console.warn('Playback error / user gesture required, falling back to simulated engine:', err);
+              setVideoLoadError(true);
               setIsPlaying(true);
             });
         } else {

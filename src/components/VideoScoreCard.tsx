@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { VideoScoringResult } from '../types';
+import { AuthoritativeDecisivenessCard } from './AuthoritativeDecisivenessCard';
+import { ToneDecisivenessCalibrationCard } from './ToneDecisivenessCalibrationCard';
+import { CueContributionMapCard } from './CueContributionMapCard';
+import { MicroFlawPrecisionCard } from './MicroFlawPrecisionCard';
 import {
   Video,
   Eye,
@@ -12,7 +16,9 @@ import {
   TrendingUp,
   Sparkles,
   ShieldCheck,
+  ShieldAlert,
   UserCheck,
+  UserX,
   Volume2,
   HeartHandshake,
   Scale,
@@ -46,15 +52,44 @@ export const VideoScoreCard: React.FC<VideoScoreCardProps> = ({
   const isHigh = overallScore >= 90;
   const kinesics = result.scientificKinesics;
 
+  const adequacy = result.jobAdequacyAudit;
+  const positiveLight = result.positiveLightAudit;
+  const doingRight = result.doingItTheRightWayAudit;
+  const genuineness = result.genuinenessDiagnostic;
+  const isDereliction = adequacy?.verdict?.toLowerCase().includes('dereliction') ||
+    genuineness?.classification === 'callous_apathy' ||
+    result.exactGrade?.toLowerCase().includes('dereliction');
+
   return (
     <div
       id="video-score-card"
       className={`mt-4 p-5 sm:p-6 border transition-all space-y-5 rounded-3xl backdrop-blur-xl shadow-2xl ${
-        isPassing
+        isDereliction
+          ? 'bg-zinc-950 border-rose-500/60 text-zinc-100'
+          : isPassing
           ? 'bg-zinc-900/95 border-emerald-500/40 text-zinc-100'
           : 'bg-zinc-900/95 border-amber-500/40 text-zinc-100'
       }`}
     >
+      {/* Zero-Tolerance Dereliction Alert Banner */}
+      {isDereliction && (
+        <div className="bg-rose-950/90 border-2 border-rose-500 p-4 sm:p-5 rounded-2xl space-y-2.5 text-rose-100 shadow-2xl">
+          <div className="flex items-center gap-2.5 font-mono text-sm uppercase tracking-wider font-bold text-rose-300">
+            <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 animate-pulse" />
+            <span>Critical Audit Verdict: Dereliction of Duty & Callous Dismissal</span>
+          </div>
+          <p className="text-xs font-sans text-rose-100/90 leading-relaxed">
+            <strong>Incident Command Integrity Rule:</strong> The candidate exhibited refusal of responsibility, dismissiveness, or hung up during an emergency report. Regardless of acoustic pitch modulation or physical posture steadiness, abandoning duty in a crisis is an immediate disqualification. Cold detachment is not leadership composure.
+          </p>
+          {adequacy?.taskExecutionAnalysis && (
+            <div className="bg-black/60 border border-rose-500/40 p-3 rounded-xl text-xs font-mono text-rose-200">
+              <span className="text-rose-400 font-bold uppercase block text-[10px] mb-1">Audit Finding:</span>
+              {adequacy.taskExecutionAnalysis}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Presence Diagnostic Alert (if irrelevant object or no face detected) */}
       {kinesics && !kinesics.presenceDetected && (
         <div className="bg-rose-950/60 border border-rose-500/50 p-4 rounded-2xl space-y-2 text-rose-200">
@@ -192,6 +227,235 @@ export const VideoScoreCard: React.FC<VideoScoreCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* EXECUTIVE TRUTH-TESTING PILLARS & GENUINENESS DIAGNOSTICS */}
+      {(adequacy || positiveLight || doingRight || genuineness) && (
+        <div className="bg-gradient-to-br from-zinc-950 via-black to-zinc-950 border border-purple-500/40 p-4 sm:p-6 rounded-2xl space-y-5 shadow-2xl font-sans">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-500/20 pb-3">
+            <div className="flex items-center gap-2">
+              <Scale className="w-5 h-5 text-purple-400" />
+              <div>
+                <h5 className="text-xs sm:text-sm font-mono uppercase tracking-wider text-purple-300 font-bold">
+                  Truth-Testing Audit & Behavioral Diagnostics
+                </h5>
+                <span className="text-[10px] text-zinc-400 font-mono">
+                  Reality-Check Pillars • Genuine Motivation vs Rehearsed Acting vs Apathy
+                </span>
+              </div>
+            </div>
+            {genuineness && (
+              <span
+                className={`text-[10px] font-mono px-3 py-1 rounded-full font-bold uppercase tracking-wider border ${
+                  genuineness.classification === 'genuine_masterclass'
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/50'
+                    : genuineness.classification === 'nervous_sincerity'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                    : genuineness.classification === 'calculated_acting'
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                    : 'bg-rose-500/20 text-rose-300 border-rose-500/50'
+                }`}
+              >
+                {genuineness.classificationLabel || genuineness.classification.replace(/_/g, ' ')}
+              </span>
+            )}
+          </div>
+
+          {/* 3 Core Truth Pillars */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Pillar 1: Job Adequacy */}
+            <div className={`p-4 rounded-xl border space-y-2 ${
+              adequacy?.score && adequacy.score < 60
+                ? 'bg-rose-950/30 border-rose-500/40 text-rose-200'
+                : adequacy?.score && adequacy.score >= 80
+                ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
+                : 'bg-zinc-900/80 border-zinc-800 text-zinc-300'
+            }`}>
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <span className="text-[10px] font-mono uppercase font-bold text-zinc-400 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-purple-400" /> 1. Job Adequacy
+                </span>
+                <span className="text-sm font-mono font-bold text-white">
+                  {adequacy?.score !== undefined ? `${adequacy.score}%` : 'N/A'}
+                </span>
+              </div>
+              <div className="text-xs font-semibold text-white">
+                {adequacy?.verdict || 'Standard Job Execution'}
+              </div>
+              <p className="text-[11px] text-zinc-300 font-sans leading-relaxed">
+                {adequacy?.taskExecutionAnalysis || 'Evaluated against operational role requirements.'}
+              </p>
+              {adequacy?.protocolCompliancePercent !== undefined && (
+                <div className="pt-1">
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400 mb-1">
+                    <span>Protocol Compliance</span>
+                    <span>{adequacy.protocolCompliancePercent}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        adequacy.protocolCompliancePercent >= 80 ? 'bg-emerald-400' : 'bg-rose-400'
+                      }`}
+                      style={{ width: `${Math.min(100, adequacy.protocolCompliancePercent)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pillar 2: Demeanor in Positive Light */}
+            <div className={`p-4 rounded-xl border space-y-2 ${
+              positiveLight?.score && positiveLight.score < 60
+                ? 'bg-rose-950/30 border-rose-500/40 text-rose-200'
+                : positiveLight?.score && positiveLight.score >= 80
+                ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
+                : 'bg-zinc-900/80 border-zinc-800 text-zinc-300'
+            }`}>
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <span className="text-[10px] font-mono uppercase font-bold text-zinc-400 flex items-center gap-1.5">
+                  <HeartHandshake className="w-3.5 h-3.5 text-cyan-400" /> 2. Positive Light
+                </span>
+                <span className="text-sm font-mono font-bold text-white">
+                  {positiveLight?.score !== undefined ? `${positiveLight.score}%` : 'N/A'}
+                </span>
+              </div>
+              <div className="text-xs font-semibold text-white">
+                {positiveLight?.verdict || 'Constructive Demeanor'}
+              </div>
+              <p className="text-[11px] text-zinc-300 font-sans leading-relaxed">
+                {positiveLight?.culturalImpactAnalysis || 'Assessed candidate demeanor, empathy, and psychological safety under pressure.'}
+              </p>
+              {positiveLight?.reassuranceAndToneScore !== undefined && (
+                <div className="pt-1">
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400 mb-1">
+                    <span>Reassurance & Tone</span>
+                    <span>{positiveLight.reassuranceAndToneScore}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        positiveLight.reassuranceAndToneScore >= 80 ? 'bg-cyan-400' : 'bg-amber-400'
+                      }`}
+                      style={{ width: `${Math.min(100, positiveLight.reassuranceAndToneScore)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pillar 3: Doing It The Right Way */}
+            <div className={`p-4 rounded-xl border space-y-2 ${
+              doingRight?.score && doingRight.score < 60
+                ? 'bg-rose-950/30 border-rose-500/40 text-rose-200'
+                : doingRight?.score && doingRight.score >= 80
+                ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
+                : 'bg-zinc-900/80 border-zinc-800 text-zinc-300'
+            }`}>
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <span className="text-[10px] font-mono uppercase font-bold text-zinc-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> 3. Doing It The Right Way
+                </span>
+                <span className="text-sm font-mono font-bold text-white">
+                  {doingRight?.score !== undefined ? `${doingRight.score}%` : 'N/A'}
+                </span>
+              </div>
+              <div className="text-xs font-semibold text-white">
+                {doingRight?.verdict || 'Methodical Standard'}
+              </div>
+              <p className="text-[11px] text-zinc-300 font-sans leading-relaxed">
+                {doingRight?.proceduralCorrectnessAnalysis || 'Audit of step-by-step containment rigor and procedural compliance.'}
+              </p>
+              {doingRight?.stepByStepRigorScore !== undefined && (
+                <div className="pt-1">
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400 mb-1">
+                    <span>Procedural Rigor</span>
+                    <span>{doingRight.stepByStepRigorScore}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        doingRight.stepByStepRigorScore >= 80 ? 'bg-emerald-400' : 'bg-rose-400'
+                      }`}
+                      style={{ width: `${Math.min(100, doingRight.stepByStepRigorScore)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Genuineness Diagnostic Matrix (Jitters vs Sincerity vs Acting vs Apathy) */}
+          {genuineness && (
+            <div className="bg-black/80 border border-purple-500/30 p-4 rounded-xl space-y-3 font-sans">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                <span className="text-xs font-mono font-bold text-purple-300 uppercase flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-purple-400" />
+                  Genuineness & Biometric Motivation Diagnostic
+                </span>
+                <span className="text-[10px] font-mono text-zinc-400">
+                  Calculated Genuineness: <strong className="text-white">{genuineness.score}%</strong>
+                </span>
+              </div>
+
+              {/* Jitter and Movement Correlation Explanation */}
+              <div className="bg-zinc-900/90 border border-zinc-800 p-3.5 rounded-xl space-y-1.5 text-xs">
+                <span className="text-[10px] font-mono text-amber-400 font-bold uppercase block">
+                  Acoustic Jitter & Movement Correlation:
+                </span>
+                <p className="text-zinc-200 leading-relaxed font-sans">
+                  {genuineness.jitterMovementCorrelation}
+                </p>
+              </div>
+
+              {/* Developmental Guidance for Candidate & Hiring Manager */}
+              <div className="bg-emerald-950/20 border border-emerald-500/30 p-3.5 rounded-xl space-y-1 text-xs">
+                <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase block">
+                  Developmental Coaching & Candidate Potential Plan:
+                </span>
+                <p className="text-zinc-200 leading-relaxed font-sans">
+                  {genuineness.trainingGuidance}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* BREAKTHROUGH MICRO-FLAW PRECISION & CIVILITY AUDIT */}
+      {(result.microFlawPrecisionDiagnostic || result.toxicHostilityAudit) && (
+        <MicroFlawPrecisionCard
+          diagnostic={result.microFlawPrecisionDiagnostic}
+          toxicAudit={result.toxicHostilityAudit}
+          title="Video Scenario Micro-Flaw Precision Diagnostic"
+        />
+      )}
+
+      {/* AUTHORITATIVE DECISIVENESS & COMMAND AUDIT */}
+      {result.authoritativeDecisivenessAudit && (
+        <AuthoritativeDecisivenessCard
+          audit={result.authoritativeDecisivenessAudit}
+          calibration={result.toneDecisivenessCalibration}
+          roleTitle={result.scenarioTitle || 'Executive Crisis Command'}
+        />
+      )}
+
+      {/* TONE & DECISIVENESS CALIBRATION BENCHMARK */}
+      {result.toneDecisivenessCalibration && (
+        <ToneDecisivenessCalibrationCard
+          calibration={result.toneDecisivenessCalibration}
+          roleTitle={result.scenarioTitle || 'Executive Crisis Command'}
+        />
+      )}
+
+      {/* CUE CONTRIBUTION MAP */}
+      {result.cueContributionMap && result.cueContributionMap.length > 0 && (
+        <CueContributionMapCard
+          cueMap={result.cueContributionMap}
+          title="Video Acoustic & Optical Cue Contribution Matrix"
+          jobAdequacyScore={result.jobAdequacyAudit?.score}
+          culturalFitScore={result.positiveLightAudit?.score}
+          proceduralRigorScore={result.doingItTheRightWayAudit?.score}
+        />
+      )}
 
       {/* SCIENTIFIC KINESICS & OCULOMETRICS DIAGNOSTIC SUITE */}
       {kinesics && (
