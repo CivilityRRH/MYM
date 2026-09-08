@@ -2,95 +2,90 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for authentication and input validation
+    // Helper functions for authentication
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    // Job Requirements collection: publicly viewable active jobs, authenticated or admin writes
+    // Job Requirements collection: publicly viewable active jobs, authenticated writes
     match /job_requirements/{jobId} {
       allow read: if true;
-      allow write: if true; // Allows candidate platform & hiring team configuration
+      allow write: if isAuthenticated();
     }
 
     // Candidate Profiles & Submissions collection
-    // Candidates can submit their profiles, view benchmark profiles, and authenticated users can view/audit
+    // Require authentication for all candidate profile interactions
     match /candidates/{candidateId} {
-      allow read: if true;
-      allow create: if request.resource.data.fullName is string && request.resource.data.fullName.size() > 0;
-      allow update, delete: if true;
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.fullName is string && request.resource.data.fullName.size() > 0;
+      allow update, delete: if isAuthenticated();
     }
 
     // Google Forms & Google Tasks integration records
     match /google_forms/{formRecordId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
     match /google_tasks/{taskRecordId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
     // Training Sessions collection
     match /training_sessions/{sessionId} {
-      allow read: if true;
-      allow create, update: if true;
-      allow delete: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     // Crisis Scenarios collection
     match /crisis_scenarios/{scenarioId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     // LinkedIn Scouts & Scout Queries collection
     match /linkedin_scouts/{scoutId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
     match /linkedin_scout_queries/{queryId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
     // Employee Journeys & Scorecards collection
     match /employee_journeys/{journeyId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
     // Recent Hires Live Social Feed collections
     match /recent_hires/{feedItemId} {
       allow read: if true;
-      allow create, update: if true;
+      allow create, update: if isAuthenticated();
       allow delete: if isAuthenticated();
     }
 
     match /recent_hires_feed/{feedItemId} {
       allow read: if true;
-      allow create, update: if true;
+      allow create, update: if isAuthenticated();
       allow delete: if isAuthenticated();
     }
 
     // Verified Company Job Ads collection
     match /company_job_ads/{adId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAuthenticated();
     }
 
     // Candidate Ad Applications
     match /ad_applications/{appId} {
-      allow read: if true;
-      allow create: if request.resource.data.candidateName is string;
-      allow update, delete: if true;
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.candidateName is string;
+      allow update, delete: if isAuthenticated();
     }
 
     // Commission Invoices collection
     match /commission_invoices/{invoiceId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
   }
 }

@@ -177,10 +177,13 @@ export const deleteJobRequirementFromFirestore = async (jobId: string): Promise<
 };
 
 export const saveCandidateProfileToFirestore = async (candidate: CandidateProfile): Promise<void> => {
+  console.log('Attempting to save candidate to Firestore:', candidate.id);
   const docRef = doc(db, CANDIDATES_COLLECTION, candidate.id);
   try {
     await setDoc(docRef, sanitizeFirestoreData(candidate), { merge: true });
+    console.log('Successfully saved candidate to Firestore');
   } catch (err) {
+    console.error('Error saving candidate to Firestore:', err);
     handleFirestoreError(err, OperationType.WRITE, `/${CANDIDATES_COLLECTION}/${candidate.id}`, auth.currentUser);
   }
 };

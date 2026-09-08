@@ -24,28 +24,30 @@ import {
   RecordedResponseAttempt,
   MicroFlawItem,
   MicroFlawPrecisionDiagnostic,
-  ToxicHostilityAudit
+  ToxicHostilityAudit,
+  FacialComposureAndExperientialVeracity
 } from '../types.ts';
 import { EvaluationCalibrationService } from './evaluationCalibrationService.ts';
-export { EvaluationCalibrationService };
+import { FacialCuesScienceEngine } from './facialCuesScienceEngine.ts';
+export { EvaluationCalibrationService, FacialCuesScienceEngine };
 
 export const DEFAULT_EVALUATION_WEIGHTS: EvaluationWeightsConfig = {
   jobAdequacy: {
-    operationalDecisiveness: 0.35,
-    proceduralContainment: 0.30,
-    tempoCadenceExecution: 0.20,
-    somaticSteadiness: 0.15,
+    proceduralContainment: 0.40,     // 40% substance, protocol containment, and actionable resolution
+    operationalDecisiveness: 0.25,   // 25% authoritative operational decisiveness & command
+    tempoCadenceExecution: 0.20,     // 20% tempo cadence within optimal polyvagal window
+    somaticSteadiness: 0.15,         // 15% kinesic steadiness and ocular fixation
   },
   culturalFit: {
-    constructiveLeadershipFirmness: 0.35, // Distinguishes firm decisiveness from hostility
-    psychologicalSafetyReassurance: 0.25,
-    moralAccountabilityDutyOfCare: 0.25,
-    authenticAffectCongruence: 0.15,
+    constructiveLeadershipFirmness: 0.35, // 35% distinguishes firm decisiveness from hostility
+    psychologicalSafetyReassurance: 0.25, // 25% team psychological safety & transparency
+    moralAccountabilityDutyOfCare: 0.25,  // 25% moral accountability & zero-tolerance for dereliction
+    authenticAffectCongruence: 0.15,      // 15% authentic affect & autonomic equilibrium
   },
   proceduralRigor: {
-    stepByStepContainment: 0.40,
-    transparentEscalation: 0.30,
-    ethicalCompliance: 0.30,
+    stepByStepContainment: 0.40,          // 40% concrete sequential triage
+    transparentEscalation: 0.30,          // 30% time-boxed stakeholder communication
+    ethicalCompliance: 0.30,              // 30% ethical workplace compliance
   }
 };
 
@@ -185,32 +187,51 @@ export class EvaluationLogicEngine {
 
     // 3. Compute Weighted Scores with Truth-Tested Substance Foundation
     // A. Job Adequacy Weighted Score (0-100)
-    // 40% substance & scenario protocol compliance
-    // 25% operational decisiveness
+    // 40% substance & procedural containment protocol
+    // 25% authoritative operational decisiveness
     // 20% tempo cadence execution
     // 15% somatic steadiness
+    const tempoJobScore = Math.min(99, Math.max(25, 72 + tempoAnalysis.jobAdequacyDelta));
     let rawAdequacy = 
-      (scenarioCompetency.substanceScore * 0.40) +
+      (scenarioCompetency.substanceScore * weights.jobAdequacy.proceduralContainment) +
       (decisiveAnalysis.decisiveScore * weights.jobAdequacy.operationalDecisiveness) +
-      (Math.min(99, Math.max(35, 75 + tempoAnalysis.jobAdequacyDelta)) * weights.jobAdequacy.tempoCadenceExecution) +
+      (tempoJobScore * weights.jobAdequacy.tempoCadenceExecution) +
       (kinesicScore * weights.jobAdequacy.somaticSteadiness);
 
     // Apply anti-warmth bias calibration offset to Job Adequacy
-    let jobAdequacyScore = Math.min(98.8, Math.max(25.0, Math.round((rawAdequacy + calibrationResult.jobAdequacyCalibrationOffset) * 10) / 10));
+    let jobAdequacyScore = Math.min(98.8, Math.max(20.0, Math.round((rawAdequacy + calibrationResult.jobAdequacyCalibrationOffset) * 10) / 10));
 
     // B. Cultural Fit & Positive Demeanor Weighted Score (0-100)
-    // constructiveLeadershipFirmness (35%), psychologicalSafetyReassurance (25%), moralAccountability (25%), authenticAffect (15%)
-    let firmnessFactor = decisiveAnalysis.isAuthoritativeFirm ? 94.0 : 82.0;
+    // constructiveLeadershipFirmness (35%), psychologicalSafetyReassurance (25%), moralAccountabilityDutyOfCare (25%), authenticAffect (15%)
+    let firmnessFactor = decisiveAnalysis.isAuthoritativeFirm ? 92.0 : 74.0;
     if (calibrationResult.correctiveInterventions.length > 0) {
-      firmnessFactor = Math.min(98.0, 94.0 + (calibrationResult.correctiveInterventions.length * 1.5));
+      firmnessFactor = Math.min(96.0, 88.0 + (calibrationResult.correctiveInterventions.length * 1.5));
     } else if (calibrationResult.calibratedLeadershipClassification.includes('Leadership-Adequate')) {
-      firmnessFactor = Math.max(firmnessFactor, 90.0);
+      firmnessFactor = Math.max(firmnessFactor, 84.0);
     }
-    if (decisiveAnalysis.firmnessClassification === 'passive_hesitant') firmnessFactor = 72.0;
+    if (decisiveAnalysis.firmnessClassification === 'passive_hesitant') firmnessFactor = 62.0;
 
-    let reassuranceScore = Math.min(99, Math.max(35, 82 + toneAnalysis.culturalFitDelta + (jitterAnalysis.culturalFitDelta * 0.5) + (calibrationResult.biasMitigationApplied ? 2.0 : 0)));
-    let moralDutyScore = wordCount >= 18 ? 92.0 : 70.0;
-    let authenticAffectScore = jitterAnalysis.stabilityClassification.includes('Nervous Sincerity') ? 88.0 : 92.0;
+    // Truth-tested moral accountability & duty of care: evaluated via affirmative ownership tokens rather than mere word count
+    const accountabilityTokens = [
+      'ownership', 'responsible', 'responsibility', 'accountable', 'accountability',
+      'contain', 'isolate', 'resolve', 'step', 'protocol', 'protect', 'safety',
+      'support', 'duty', 'care', 'transparent', 'deliver', 'we will', 'i will', 'our team'
+    ];
+    const lowerClean = cleanTranscript.toLowerCase();
+    const verifiedAccountabilityTokens = accountabilityTokens.filter(t => lowerClean.includes(t));
+    let moralDutyScore = 62.0;
+    if (verifiedAccountabilityTokens.length >= 3) {
+      moralDutyScore = 92.0;
+    } else if (verifiedAccountabilityTokens.length >= 1) {
+      moralDutyScore = 78.0;
+    } else if (wordCount < 10) {
+      moralDutyScore = 35.0;
+    }
+
+    let reassuranceScore = Math.min(99, Math.max(25, 70 + toneAnalysis.culturalFitDelta + (jitterAnalysis.culturalFitDelta * 0.5) + (calibrationResult.biasMitigationApplied ? 2.0 : 0)));
+    let authenticAffectScore = jitterAnalysis.stabilityClassification.includes('Nervous Sincerity') 
+      ? 86.0 
+      : (jitterAnalysis.stabilityClassification.includes('Acute Sympathetic Tremor') ? 60.0 : 88.0);
 
     let rawCultural = 
       (firmnessFactor * weights.culturalFit.constructiveLeadershipFirmness) +
@@ -219,41 +240,50 @@ export class EvaluationLogicEngine {
       (authenticAffectScore * weights.culturalFit.authenticAffectCongruence);
 
     if (scenarioCompetency.flaws.some(f => f.category === 'Accountability & Blame')) {
-      rawCultural -= 16.0;
+      rawCultural -= 20.0;
     }
     if (scenarioCompetency.flaws.some(f => f.category === 'Acoustic-Verbal Dissonance')) {
-      rawCultural -= 12.0;
+      rawCultural -= 16.0;
     }
 
     // Apply anti-warmth bias calibration offset to Cultural Fit
-    let culturalFitScore = Math.min(99.0, Math.max(25.0, Math.round((rawCultural + calibrationResult.culturalFitCalibrationOffset) * 10) / 10));
+    let culturalFitScore = Math.min(99.0, Math.max(20.0, Math.round((rawCultural + calibrationResult.culturalFitCalibrationOffset) * 10) / 10));
 
     // C. Procedural Rigor Weighted Score (0-100)
-    let proceduralScore = Math.min(99.0, Math.max(25.0, Math.round((
+    let proceduralScore = Math.min(99.0, Math.max(20.0, Math.round((
       (scenarioCompetency.substanceScore * 0.45) +
       (jobAdequacyScore * 0.35) +
       (decisiveAnalysis.decisiveScore * 0.20)
     ) * 10) / 10));
 
     // Overall Composite Score
-    let overallScore = Math.min(98.8, Math.max(25.0, Math.round((
+    let overallScore = Math.min(98.8, Math.max(20.0, Math.round((
       (jobAdequacyScore * 0.45) +
       (culturalFitScore * 0.35) +
       (proceduralScore * 0.20)
     ) * 10) / 10));
 
-    // Strict Grounding: Low substance or critical flaws cap the score
-    if (scenarioCompetency.substanceScore < 65.0) {
-      overallScore = Math.min(overallScore, 68.0);
+    // Tightened Grounding & Guardrails: Low substance, deficient job adequacy, or flaws strictly cap scores
+    if (scenarioCompetency.substanceScore < 72.0) {
+      overallScore = Math.min(overallScore, 74.0); // Strict gate: cannot pass without >= 72% substance
+    }
+    if (jobAdequacyScore < 75.0) {
+      overallScore = Math.min(overallScore, 76.0); // Strict gate: cannot pass without >= 75% job adequacy
     }
     if (scenarioCompetency.flaws.some(f => f.severity === 'critical')) {
-      overallScore = Math.min(overallScore, 24.5);
+      overallScore = Math.min(overallScore, 24.5); // Immediate failure for critical flaws
+    }
+    const moderateFlawsCount = scenarioCompetency.flaws.filter(f => f.severity === 'moderate').length;
+    if (moderateFlawsCount >= 2) {
+      overallScore = Math.min(overallScore, 75.0); // Multiple significant deficiencies cap below 80% passing
     }
 
-    // Strict Passing Requirement: Overall >= 80, Substance >= 70, No Critical Flaws
+    // Strict Passing Requirement: Overall >= 80, Substance >= 72, Job Adequacy >= 75, No Critical Flaws, < 2 Moderate Flaws
     const isPassing = overallScore >= 80.0 && 
-                      scenarioCompetency.substanceScore >= 70.0 && 
-                      !scenarioCompetency.flaws.some(f => f.severity === 'critical');
+                      scenarioCompetency.substanceScore >= 72.0 && 
+                      jobAdequacyScore >= 75.0 &&
+                      !scenarioCompetency.flaws.some(f => f.severity === 'critical') &&
+                      moderateFlawsCount < 2;
 
     // 4. Generate Cue Contribution Map
     const cueContributionMap = this.generateCueContributionMap(
@@ -438,6 +468,37 @@ export class EvaluationLogicEngine {
         isToxic: false,
         penaltyAppliedPercent: 0
       },
+      pitchModulationScore: Math.min(99.0, Math.max(10.0, Math.round(toneAnalysis.pitchStabilityPercent * 10) / 10)),
+      emotionalComposureScore: Math.min(99.0, Math.max(10.0, Math.round(culturalFitScore * 10) / 10)),
+      cadencePacingScore: Math.min(99.0, Math.max(10.0, Math.round((tempoAnalysis.jobAdequacyDelta >= 0 ? 94.0 : 82.0 + tempoAnalysis.jobAdequacyDelta) * 10) / 10)),
+      verbalSubstanceScore: scenarioCompetency.substanceScore,
+      substanceScore: scenarioCompetency.substanceScore,
+      flaws: scenarioCompetency.flaws,
+      facialComposureAndExperientialVeracity: FacialCuesScienceEngine.synthesize({
+        oculometrics: {
+          fixationRatioPercent: cues.fixationRatioPercent ?? 82,
+          saccadeFrequencyPerMin: cues.saccadeFrequencyPerMin ?? 22,
+          gazeAversionPattern: (cues.gazeAversionPattern as any) ?? 'direct_anchored',
+          cognitiveVsNervousAnalysis: cues.cognitiveVsNervousAnalysis ?? 'Direct gaze anchored with natural cognitive retrieval intervals.',
+          blinkRatePerMin: cues.blinkRatePerMin ?? 22,
+          blinkStressClassification: (cues.blinkStressClassification as any) ?? 'mild_alertness'
+        },
+        kinesicMovements: {
+          posturalSwayIndex: cues.posturalSwayIndex ?? (cues.postureSteadinessPercent ? (100 - cues.postureSteadinessPercent) : 18),
+          adaptorFrequency: cues.adaptorFrequency ?? 'Minimal / Grounded',
+          illustratorEffectiveness: cues.illustratorEffectiveness ?? 'High Speech-Gesture Synchrony',
+          nervousSystemState: (cues.nervousSystemState as any) ?? 'regulated_ventral',
+          shoulderTensionScore: cues.shoulderTensionScore ?? 28
+        }
+      }, {
+        speechPacingWpm: tempoAnalysis.wpm,
+        jitterPercent: jitterAnalysis.jitterPercent,
+        shimmerPercent: jitterAnalysis.shimmerPercent,
+        hnrDb: jitterAnalysis.hnrDb,
+        pitchStabilityPercent: toneAnalysis.pitchStabilityPercent,
+        transcript: cleanTranscript,
+        scenarioType: (cues.scenarioTitle?.toLowerCase().includes('calling') ? 'true_calling' : 'crisis_incident')
+      }),
       keyStrengths,
       targetedCoachingRecommendations: targetedCoaching,
       whatShouldHaveBeenDoneInstead: scenarioCompetency.flaws.length > 0
@@ -674,18 +735,19 @@ export class EvaluationLogicEngine {
       if (lower.includes(pm)) passiveCount++;
     }
 
-    let decisiveScore = 75.0;
-    decisiveScore += Math.min(20, detectedVerbs.length * 4.5);
-    decisiveScore -= Math.min(25, passiveCount * 6.0);
+    // Calibrated baseline: true decisiveness requires proactive command verbs
+    let decisiveScore = detectedVerbs.length >= 2 ? 72.0 : (detectedVerbs.length === 1 ? 64.0 : 54.0);
+    decisiveScore += Math.min(24, detectedVerbs.length * 4.5);
+    decisiveScore -= Math.min(30, passiveCount * 7.0);
 
     if (tempo.cadenceClassification.includes('Optimal Executive')) decisiveScore += 6.0;
     if (jitter.stabilityClassification.includes('Executive Calm')) decisiveScore += 5.0;
     if (tone.terminalInflection === 'definitive_downward') decisiveScore += 8.0;
-    if (tone.terminalInflection === 'questioning_uptalk') decisiveScore -= 8.0;
+    if (tone.terminalInflection === 'questioning_uptalk') decisiveScore -= 10.0;
 
-    decisiveScore = Math.min(99.0, Math.max(30.0, Math.round(decisiveScore * 10) / 10));
+    decisiveScore = Math.min(99.0, Math.max(20.0, Math.round(decisiveScore * 10) / 10));
 
-    const isAuthoritativeFirm = decisiveScore >= 82.0 && detectedVerbs.length >= 2;
+    const isAuthoritativeFirm = decisiveScore >= 80.0 && detectedVerbs.length >= 2;
 
     let decisivenessTier: 'Commanding Executive' | 'Firm Professional' | 'Developing Authority' | 'Hesitant / Passive' | 'Detached / Derelict';
     let firmnessClassification: 'commanding_reassuring' | 'respectful_firmness' | 'passive_hesitant' | 'toxic_callousness';
@@ -1220,18 +1282,18 @@ export class EvaluationLogicEngine {
     let flawPenalty = 0;
 
     // 1. Check for Insufficient Response Depth / Truncated Input
-    if (wordCount < 12) {
+    if (wordCount < 16) {
       flaws.push({
         flawId: 'flaw-insufficient-depth',
         category: 'Scenario Substance',
-        severity: wordCount < 6 ? 'critical' : 'moderate',
+        severity: wordCount < 8 ? 'critical' : 'moderate',
         identifiedExcerpt: clean ? `"${clean}"` : '(No substantive spoken response)',
         issueNamed: 'Insufficient Spoken Substance & Truncated Delivery',
         whyItFailsScenario: `Executive and specialist scenarios require thorough, sequential problem-solving. A brief ${wordCount}-word statement fails to demonstrate procedural depth or leadership readiness.`,
         positiveGrowthCoaching: 'Structure your response in three distinct phases: 1) Immediate Situation Ownership, 2) Step-by-Step Mitigation Protocol, and 3) Stakeholder Communication Cadence.',
         exemplarCorrection: `Elaborate thoroughly: "I am taking operational command of this incident. First, I am isolating the impacted microservices to prevent cascading latency. Second, I am spinning up our incident war room. Third, I will provide updates every 15 minutes."`
       });
-      flawPenalty += wordCount < 6 ? 45 : 25;
+      flawPenalty += wordCount < 8 ? 50 : 26;
     }
 
     // 2. Check for Defensive Blame-Shifting
@@ -1256,7 +1318,34 @@ export class EvaluationLogicEngine {
           positiveGrowthCoaching: 'Adopt universal operational ownership. Even when an upstream or external team introduced the variance, lead with service restoration first.',
           exemplarCorrection: `Model Accountability: "Regardless of where the variance originated, our sole mandate is service recovery. Once production telemetry is green, we will conduct a blameless root-cause analysis."`
         });
-        flawPenalty += 16;
+        flawPenalty += 22;
+        break;
+      }
+    }
+
+    // 2.5 Check for Evasive Dereliction & Refusal to Decide
+    const evasivePhrases = [
+      "not my call", "not my decision", "someone else should decide", "wait until tomorrow",
+      "cant help you", "can't help you", "no idea", "i have no clue", "figure it out yourself",
+      "not sure what to say", "someone else will deal with it", "i don't care"
+    ];
+    for (const phrase of evasivePhrases) {
+      if (lower.includes(phrase)) {
+        const idx = lower.indexOf(phrase);
+        const start = Math.max(0, idx - 20);
+        const end = Math.min(clean.length, idx + phrase.length + 20);
+        const excerpt = `"...${clean.substring(start, end).trim()}..."`;
+        flaws.push({
+          flawId: 'flaw-evasive-dereliction',
+          category: 'Accountability & Blame',
+          severity: 'critical',
+          identifiedExcerpt: excerpt,
+          issueNamed: 'Operational Evasion & Dereliction of Duty',
+          whyItFailsScenario: 'Deflecting responsibility or abdicating decision-making during high-stakes scenarios demonstrates lack of operational fortitude and breaches corporate leadership standards.',
+          positiveGrowthCoaching: 'Even under acute ambiguity, establish structured triage bounds and take explicit command of the immediate next steps.',
+          exemplarCorrection: `Model Ownership: "While variables remain unconfirmed, I am establishing immediate triage bounds and coordinating the next mitigation milestone."`
+        });
+        flawPenalty += 30;
         break;
       }
     }
@@ -1284,7 +1373,7 @@ export class EvaluationLogicEngine {
           positiveGrowthCoaching: 'Acknowledge the full operational gravity of the situation while using calm pitch modulation to project steady confidence in the mitigation plan.',
           exemplarCorrection: `Model Balance: "I recognize the high severity of this outage and the disruption it causes for our users. We are treating this as P0 critical, and here is our exact containment sequence."`
         });
-        flawPenalty += 14;
+        flawPenalty += 18;
         break;
       }
     }
@@ -1309,7 +1398,7 @@ export class EvaluationLogicEngine {
         positiveGrowthCoaching: 'Lead your operational sequence with explicit isolation: Step 1 Isolate, Step 2 Investigate, Step 3 Notify.',
         exemplarCorrection: `Model Triage Step: "Step 1 is isolating the affected cluster and severing compromised network routes to protect customer data. Step 2 is activating our engineering response team."`
       });
-      flawPenalty += 12;
+      flawPenalty += 16;
     }
 
     // 5. Check for Cadence & Milestone Vagueness
@@ -1331,7 +1420,7 @@ export class EvaluationLogicEngine {
         positiveGrowthCoaching: 'Anchor your containment commitments to concrete time milestones (e.g. "Written executive briefing in 20 minutes; bridge reconvened every 45 minutes").',
         exemplarCorrection: `Model Cadence: "I have stood up our incident bridge and will provide written telemetry updates to leadership every 30 minutes until resolution."`
       });
-      flawPenalty += 8;
+      flawPenalty += 10;
     }
 
     // 6. Check for Hollow Corporate Buzzwords Without Operational Meat
@@ -1348,16 +1437,19 @@ export class EvaluationLogicEngine {
         positiveGrowthCoaching: 'Swap conversational platitudes for concrete technical parameters and verifiable milestones.',
         exemplarCorrection: `Model Precision: "Focus on metrics: 'Inspect container error logs, verify database connection pooling, and roll back the deployment hash to release v2.4.'" `
       });
-      flawPenalty += 8;
+      flawPenalty += 10;
     }
 
     // Calculate Grounded Substance Score (40-50% foundation of the overall evaluation)
-    let substanceBase = 48.0;
-    if (hasContainment) substanceBase += 20.0;
-    if (hasTimeline) substanceBase += 12.0;
-    if (decisive.commandVerbsDetected.length >= 2) substanceBase += 14.0;
-    if (wordCount >= 25) substanceBase += 10.0;
-    if (wordCount >= 40) substanceBase += 6.0;
+    // Tightened base: substance is earned through containment, milestones, and actionable problem solving
+    let substanceBase = 32.0;
+    if (hasContainment) substanceBase += 22.0;
+    if (hasTimeline) substanceBase += 15.0;
+    if (decisive.commandVerbsDetected.length >= 2) substanceBase += 15.0;
+    if (lower.includes('step 1') || lower.includes('first') || lower.includes('phase 1')) substanceBase += 10.0;
+    if (wordCount >= 20) substanceBase += 8.0;
+    if (wordCount >= 38) substanceBase += 6.0;
+    if (wordCount >= 60) substanceBase += 4.0;
 
     // Apply specific flaw deductions
     const substanceScore = Math.max(15.0, Math.min(98.5, Math.round((substanceBase - flawPenalty) * 10) / 10));

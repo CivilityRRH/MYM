@@ -67,14 +67,27 @@ export default function App() {
       }
     });
 
-    // Purge any lingering simulated pioneer profile from Firestore
+    // Purge any lingering simulated pioneer or user test profiles from Firestore
     deleteCandidateFromFirestore('cand-pioneer-ronnie-hill').catch(() => {});
 
     const unsubCandidates = subscribeToCandidateProfiles((remoteCandidates) => {
-      // Strictly retain real live recorded submissions, filtering out any simulated dummy profiles
-      const realOnly = (remoteCandidates || []).filter(
-        (c) => c.id !== 'cand-pioneer-ronnie-hill' && !c.id.startsWith('cand-sim-')
-      );
+      // Retain real live submissions while actively purging test dossiers matching Ronnie Hill / ronniehillsugc@gmail.com
+      const realOnly = (remoteCandidates || []).filter((c) => {
+        const email = (c.email || c.submission?.candidateEmail || '').toLowerCase().trim();
+        const name = (c.fullName || c.submission?.candidateName || '').toLowerCase().trim();
+        const isUserOrTestDossier =
+          c.id === 'cand-pioneer-ronnie-hill' ||
+          c.id.startsWith('cand-sim-') ||
+          email === 'ronniehillsugc@gmail.com' ||
+          email.includes('ronniehills') ||
+          name.includes('ronnie hill');
+
+        if (isUserOrTestDossier) {
+          deleteCandidateFromFirestore(c.id).catch(() => {});
+          return false;
+        }
+        return true;
+      });
       setCandidates(realOnly);
     });
 

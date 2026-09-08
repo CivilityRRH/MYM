@@ -2778,7 +2778,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
                           {session.videoBlobUrl && (
                             <div className="space-y-1">
                               <span className="text-[10px] font-mono text-white/60">High-Pressure Video Recording:</span>
-                              <video controls src={session.videoBlobUrl} className="w-full h-32 object-cover bg-black rounded border border-white/10" />
+                              <video controls playsInline src={session.videoBlobUrl} className="w-full h-32 object-cover bg-black rounded border border-white/10" />
                             </div>
                           )}
                         </div>

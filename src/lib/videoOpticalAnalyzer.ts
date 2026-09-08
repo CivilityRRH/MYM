@@ -579,7 +579,7 @@ export async function analyzeVideoKinesics(
 
     if (!ctx) {
       if (objectUrlToRevoke) URL.revokeObjectURL(objectUrlToRevoke);
-      resolve(createFallbackReport(true, 85, 'Optical telemetry initialized with standard executive baseline.', targetDurationSec));
+      resolve(createFallbackReport(false, 0, 'Could not initialize optical analysis canvas context.', targetDurationSec));
       return;
     }
 
@@ -855,18 +855,18 @@ function compileScientificReport(
   durationSec: number
 ): OpticalScanReport {
   if (frames.length === 0) {
-    return createFallbackReport(true, 88, 'Executive video recording analyzed via standardized visual metrics.', durationSec);
+    return createFallbackReport(false, 0, 'No video frames were extracted from camera stream. Video may be empty or unplayable.', durationSec);
   }
 
   const detectedFrames = frames.filter((f) => f.faceDetected);
   const faceRatio = detectedFrames.length / frames.length;
 
-  // RULE: If genuinely zero human skin or face detected across multiple frames, flag as unverified presence
-  if (faceRatio < 0.12 && detectedFrames.length === 0) {
+  // RULE: If insufficient candidate face presence detected across sampled frames, flag as unverified presence
+  if (faceRatio < 0.20 || detectedFrames.length < 2) {
     return {
       presenceDetected: false,
       presenceConfidencePercent: Math.round(faceRatio * 100),
-      diagnosticMessage: 'No human candidate face or head silhouette detected. Video appears to contain inanimate scenery, blank surfaces, or off-angle framing.',
+      diagnosticMessage: 'No verified human candidate face detected. The camera frame appeared empty, obscured, or lacking candidate facial alignment.',
       totalFramesAnalyzed: frames.length,
       durationSec: Math.round(durationSec),
       sampledKeyframeBase64s: keyframes,

@@ -257,27 +257,47 @@ export const OpeningCallingVideoChamber: React.FC<OpeningCallingVideoChamberProp
             },
             audio: {
               echoCancellation: true,
-              noiseSuppression: true
+              noiseSuppression: true,
+              autoGainControl: true
             }
           });
         } catch (primaryErr: any) {
-          console.warn('Primary constraint failed, trying standard fallback:', primaryErr);
+          console.warn('Primary constraint failed, trying standard video+audio fallback:', primaryErr);
           try {
             stream = await navigator.mediaDevices.getUserMedia({
               video: true,
               audio: true
             });
           } catch (avFallbackErr) {
-            console.warn('Video+Audio fallback rejected, attempting video only:', avFallbackErr);
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: true
-            });
+            console.warn('Combined Video+Audio fallback rejected, attempting split stream capture:', avFallbackErr);
+            try {
+              const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+              let audioStream: MediaStream | null = null;
+              try {
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              } catch (micErr) {
+                console.warn('Microphone permission or hardware access rejected:', micErr);
+              }
+              const tracks = [...videoStream.getVideoTracks()];
+              if (audioStream && audioStream.getAudioTracks().length > 0) {
+                tracks.push(...audioStream.getAudioTracks());
+              }
+              stream = new MediaStream(tracks);
+            } catch (vOnlyErr) {
+              console.warn('Video track acquisition failed:', vOnlyErr);
+            }
           }
         }
       }
 
       if (!stream) {
         throw new Error('Device camera hardware is unavailable or blocked');
+      }
+
+      if (stream.getAudioTracks().length === 0) {
+        setPermissionNotice(
+          'Notice: Microphone could not be connected. Video will record without sound. Please check browser microphone permissions in your address bar.'
+        );
       }
 
       mediaStreamRef.current = stream;
@@ -709,6 +729,7 @@ export const OpeningCallingVideoChamber: React.FC<OpeningCallingVideoChamberProp
               <video
                 src={videoUrl}
                 controls
+                playsInline
                 className="w-full h-full object-cover"
               />
             ) : (

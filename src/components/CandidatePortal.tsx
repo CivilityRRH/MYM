@@ -43,6 +43,7 @@ import {
   RefreshCw,
   FileCheck,
   Award,
+  Trash2,
   Compass,
   AlertCircle,
   Eye,
@@ -58,6 +59,7 @@ import {
   ExternalLink,
   Sliders,
   Volume2,
+  MicOff,
   Target,
   BookOpen,
   Brain,
@@ -68,6 +70,38 @@ import {
   Star,
   ChevronRight
 } from 'lucide-react';
+
+// Detect optimal cross-browser video MIME type ensuring opus audio stream codec is bound
+const getPreferredVideoMimeType = (): string | undefined => {
+  if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') return undefined;
+  const candidates = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=h264,opus',
+    'video/webm',
+    'video/mp4;codecs=avc1,mp4a.40.2',
+    'video/mp4'
+  ];
+  for (const c of candidates) {
+    if (MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return undefined;
+};
+
+// Detect optimal cross-browser audio MIME type
+const getPreferredAudioMimeType = (): string | undefined => {
+  if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') return undefined;
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg;codecs=opus'
+  ];
+  for (const c of candidates) {
+    if (MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return undefined;
+};
 
 export type CandidateJourneyStep =
   | 'basic-info'            // Step 1: Sign up & Basic Information
@@ -301,6 +335,9 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
   const scenarioVideoTimerRef = useRef<any>(null);
   const scenarioVideoFileInputRef = useRef<HTMLInputElement | null>(null);
   const scenarioVideoPreviewRef = useRef<HTMLVideoElement | null>(null);
+  const scenarioMediaStreamRef = useRef<MediaStream | null>(null);
+  const scenarioSpeechRecRef = useRef<any>(null);
+  const [isScenarioCameraActive, setIsScenarioCameraActive] = useState<boolean>(false);
   const opticalAnalysisIntervalRef = useRef<any>(null);
   const opticalCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -314,7 +351,15 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
       const saved = typeof window !== 'undefined' ? localStorage.getItem('mind_your_manners_last_completed_dossier') : null;
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.profile) return parsed.profile;
+        if (parsed?.profile) {
+          const email = (parsed.profile.email || parsed.profile.submission?.candidateEmail || '').toLowerCase().trim();
+          const name = (parsed.profile.fullName || parsed.profile.submission?.candidateName || '').toLowerCase().trim();
+          if (email.includes('ronniehills') || name.includes('ronnie hill')) {
+            localStorage.removeItem('mind_your_manners_last_completed_dossier');
+            return null;
+          }
+          return parsed.profile;
+        }
       }
     } catch (e) {}
     return null;
@@ -324,12 +369,32 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
       const saved = typeof window !== 'undefined' ? localStorage.getItem('mind_your_manners_last_completed_dossier') : null;
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.evalData) return parsed.evalData;
+        if (parsed?.evalData) {
+          const email = (parsed?.profile?.email || parsed?.profile?.submission?.candidateEmail || '').toLowerCase().trim();
+          const name = (parsed?.profile?.fullName || parsed?.profile?.submission?.candidateName || '').toLowerCase().trim();
+          if (email.includes('ronniehills') || name.includes('ronnie hill')) {
+            localStorage.removeItem('mind_your_manners_last_completed_dossier');
+            return null;
+          }
+          return parsed.evalData;
+        }
       }
     } catch (e) {}
     return null;
   });
   const [showDossierModal, setShowDossierModal] = useState<boolean>(false);
+
+  const handleDeleteSavedDossier = () => {
+    if (confirm('Are you sure you want to delete this candidate dossier and reset your assessment?')) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('mind_your_manners_last_completed_dossier');
+      }
+      setFinalCandidateProfile(null);
+      setFinalEvaluation(null);
+      setShowDossierModal(false);
+      setCurrentStep('basic-info');
+    }
+  };
 
   // Refs for media recording
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
@@ -341,6 +406,16 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
   const scenarioBlobRef = useRef<Blob | null>(null);
   const timerIntervalRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Audio stream capture & live VU meters for recording verification
+  const [callingAudioLevel, setCallingAudioLevel] = useState<number>(0);
+  const [scenarioAudioLevel, setScenarioAudioLevel] = useState<number>(0);
+  const [micDetectedWarning, setMicDetectedWarning] = useState<string | null>(null);
+  const callingAudioContextRef = useRef<AudioContext | null>(null);
+  const callingAnimFrameRef = useRef<number | null>(null);
+  const scenarioAudioContextRef = useRef<AudioContext | null>(null);
+  const scenarioAnimFrameRef = useRef<number | null>(null);
+  const callingAudioStreamRef = useRef<MediaStream | null>(null);
 
   // Identify currently active job requirement
   const activeJob =
@@ -368,12 +443,27 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
       createdAt: new Date().toISOString()
     };
 
-  // Clean up media streams when leaving recording step
+  // Clean up media streams and audio nodes when leaving recording step
   useEffect(() => {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (callingAudioStreamRef.current) {
+        callingAudioStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (callingAudioContextRef.current) {
+        try { callingAudioContextRef.current.close(); } catch {}
+      }
+      if (scenarioAudioContextRef.current) {
+        try { scenarioAudioContextRef.current.close(); } catch {}
+      }
+      if (callingAnimFrameRef.current) {
+        cancelAnimationFrame(callingAnimFrameRef.current);
+      }
+      if (scenarioAnimFrameRef.current) {
+        cancelAnimationFrame(scenarioAnimFrameRef.current);
       }
     };
   }, []);
@@ -567,65 +657,121 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
 
   const handleStartRecording = async () => {
     setCameraPermissionError(null);
+    setMicDetectedWarning(null);
     try {
-      let stream = mediaStreamRef.current;
-
-      // Ensure active stream exists with proper tracks
-      if (!stream || !stream.active) {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setCameraPermissionError('Media recording is not supported in this browser. Please upload a media file.');
-          return;
-        }
-
-        if (recordingMode === 'video') {
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-              audio: { echoCancellation: true, noiseSuppression: true }
-            });
-          } catch {
-            try {
-              stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            } catch {
-              // If microphone is blocked or not detected, proceed with video-only recording
-              stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            }
-          }
-        } else {
-          // Audio only mode
-          stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true }
-          });
-        }
-
-        mediaStreamRef.current = stream;
-        if (videoPreviewRef.current && recordingMode === 'video' && stream) {
-          videoPreviewRef.current.srcObject = stream;
-          videoPreviewRef.current.muted = true;
-          try {
-            await videoPreviewRef.current.play();
-          } catch {}
-        }
-        setIsCameraActive(recordingMode === 'video');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraPermissionError('Media recording is not supported in this browser. Please upload a media file.');
+        return;
       }
 
-      if (!stream) {
+      let videoStream = mediaStreamRef.current;
+
+      // 1. Ensure video stream exists and is actively delivering video tracks
+      if (recordingMode === 'video') {
+        if (!videoStream || !videoStream.active || videoStream.getVideoTracks().length === 0) {
+          try {
+            videoStream = await navigator.mediaDevices.getUserMedia({
+              video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+            });
+          } catch {
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          }
+          mediaStreamRef.current = videoStream;
+          if (videoPreviewRef.current) {
+            videoPreviewRef.current.srcObject = videoStream;
+            videoPreviewRef.current.muted = true;
+            videoPreviewRef.current.playsInline = true;
+            try {
+              await videoPreviewRef.current.play();
+            } catch {}
+          }
+          setIsCameraActive(true);
+        }
+      }
+
+      // 2. Explicitly acquire microphone audio stream with noise suppression & gain control
+      let audioStream: MediaStream | null = null;
+      try {
+        audioStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+      } catch (primaryMicErr) {
+        console.warn('Advanced audio constraint rejected, attempting fallback audio:', primaryMicErr);
+        try {
+          audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (fallbackMicErr) {
+          console.warn('Microphone permission or hardware access rejected:', fallbackMicErr);
+        }
+      }
+
+      callingAudioStreamRef.current = audioStream;
+
+      if (!audioStream || audioStream.getAudioTracks().length === 0) {
+        if (recordingMode === 'audio') {
+          setCameraPermissionError('Microphone access is blocked. Please allow microphone permissions in your browser address bar to record your spoken response.');
+          return;
+        } else {
+          setMicDetectedWarning('Microphone blocked or unavailable: Video is recording without sound. Please check browser microphone permissions.');
+        }
+      }
+
+      // 3. Assemble composite recording stream containing BOTH video and audio tracks
+      const tracks: MediaStreamTrack[] = [];
+      if (recordingMode === 'video' && videoStream) {
+        tracks.push(...videoStream.getVideoTracks());
+      }
+      if (audioStream && audioStream.getAudioTracks().length > 0) {
+        tracks.push(...audioStream.getAudioTracks());
+      }
+
+      if (tracks.length === 0) {
         setCameraPermissionError('Could not start recording. Please grant camera/microphone permissions or upload a media file.');
         return;
       }
 
-      recordedChunksRef.current = [];
-      let mimeType: string | undefined;
-      if (recordingMode === 'video') {
-        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mimeType = 'video/webm;codecs=vp9';
-        else if (MediaRecorder.isTypeSupported('video/webm')) mimeType = 'video/webm';
-        else if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
-      } else {
-        if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
-        else if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
+      const compositeStream = new MediaStream(tracks);
+
+      // 4. Setup live VU audio meter for real-time voice verification
+      if (audioStream && audioStream.getAudioTracks().length > 0) {
+        try {
+          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioCtx) {
+            const ctx = new AudioCtx();
+            callingAudioContextRef.current = ctx;
+            if (ctx.state === 'suspended') {
+              ctx.resume().catch(() => {});
+            }
+            const source = ctx.createMediaStreamSource(audioStream);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            const updateMeter = () => {
+              if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') return;
+              analyser.getByteFrequencyData(dataArray);
+              let sum = 0;
+              for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+              const avg = sum / dataArray.length;
+              const norm = Math.min(100, Math.round((avg / 128) * 100));
+              setCallingAudioLevel(norm);
+              callingAnimFrameRef.current = requestAnimationFrame(updateMeter);
+            };
+            updateMeter();
+          }
+        } catch (e) {
+          console.warn('Live audio meter notice:', e);
+        }
       }
 
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recordedChunksRef.current = [];
+      const mimeType = recordingMode === 'video' ? getPreferredVideoMimeType() : getPreferredAudioMimeType();
+
+      const recorder = new MediaRecorder(compositeStream, mimeType ? { mimeType } : undefined);
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
           recordedChunksRef.current.push(e.data);
@@ -633,7 +779,22 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
       };
 
       recorder.onstop = () => {
-        const actualType = mimeType || recordedChunksRef.current[0]?.type || (recordingMode === 'video' ? 'video/webm' : 'audio/webm');
+        // Clean up audio stream tracks acquired for this recording
+        if (callingAudioStreamRef.current) {
+          callingAudioStreamRef.current.getTracks().forEach((t) => t.stop());
+          callingAudioStreamRef.current = null;
+        }
+        if (callingAudioContextRef.current) {
+          try { callingAudioContextRef.current.close(); } catch {}
+          callingAudioContextRef.current = null;
+        }
+        if (callingAnimFrameRef.current) {
+          cancelAnimationFrame(callingAnimFrameRef.current);
+          callingAnimFrameRef.current = null;
+        }
+        setCallingAudioLevel(0);
+
+        const actualType = mimeType || recorder.mimeType || recordedChunksRef.current[0]?.type || (recordingMode === 'video' ? 'video/webm' : 'audio/webm');
         const blob = new Blob(recordedChunksRef.current, { type: actualType });
         callingBlobRef.current = blob;
         saveMediaBlob('active_callingVideo', blob, 'callingVideo', recordingSeconds).catch(() => {});
@@ -648,7 +809,7 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
         }
       };
 
-      recorder.start(500);
+      recorder.start(400);
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       setRecordingSeconds(0);
@@ -669,11 +830,25 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
   };
 
   const handleStopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
+    if (callingAudioStreamRef.current) {
+      callingAudioStreamRef.current.getTracks().forEach((t) => t.stop());
+      callingAudioStreamRef.current = null;
+    }
+    if (callingAudioContextRef.current) {
+      try { callingAudioContextRef.current.close(); } catch {}
+      callingAudioContextRef.current = null;
+    }
+    if (callingAnimFrameRef.current) {
+      cancelAnimationFrame(callingAnimFrameRef.current);
+      callingAnimFrameRef.current = null;
+    }
+    setCallingAudioLevel(0);
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
     setIsRecording(false);
   };
@@ -804,7 +979,8 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
       }
 
       vocalChunksRef.current = [];
-      const mr = new MediaRecorder(stream);
+      const preferredAudioMime = getPreferredAudioMimeType();
+      const mr = new MediaRecorder(stream, preferredAudioMime ? { mimeType: preferredAudioMime } : undefined);
       vocalRecorderRef.current = mr;
 
       mr.ondataavailable = (e) => {
@@ -812,7 +988,8 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
       };
 
       mr.onstop = async () => {
-        const blob = new Blob(vocalChunksRef.current, { type: 'audio/webm' });
+        const actualType = preferredAudioMime || mr.mimeType || vocalChunksRef.current[0]?.type || 'audio/webm';
+        const blob = new Blob(vocalChunksRef.current, { type: actualType });
         vocalBlobRef.current = blob;
         saveMediaBlob('active_toneAudio', blob, 'toneAudio', vocalRecordingSeconds).catch(() => {});
         const url = URL.createObjectURL(blob);
@@ -971,26 +1148,45 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
       const pitchStability = report?.pitchStabilityPercent || 93.2;
       const wpm = report?.speechPacingWpm || 130;
       const hnr = report?.hnrDb || 18.4;
-      const overall = Math.min(99, Math.round((pitchStability * 0.4 + 94 * 0.3 + 96 * 0.3) * 10) / 10);
+      const fallbackEngine = EvaluationLogicEngine.evaluate({
+        transcript: textToEvaluate,
+        transcriptText: textToEvaluate,
+        speechTempoWpm: wpm,
+        pitchStabilityPercent: pitchStability,
+        hnrDb: hnr,
+        roleTitle: activeJob.roleName,
+        scenarioContext: questionPrompt,
+        attemptNumber: vocalAttemptNumber,
+        maxChancesAllowed: 2
+      });
+
+      const overall = fallbackEngine.overallScore;
+      const isPass = fallbackEngine.isPassing;
 
       setVocalScoring({
         spokenAudioSummary: textToEvaluate || '(Audio response analyzed via acoustic and vocal DSP telemetry)',
         overallVocalScore: overall,
-        pitchModulationScore: Math.min(99, Math.round(pitchStability)),
-        cadencePacingScore: wpm >= 120 && wpm <= 155 ? 95.0 : 89.0,
-        emotionalComposureScore: hnr > 15 ? 96.5 : 91.0,
-        verbalSubstanceScore: 94.5,
-        exactGrade: `${overall}% • Executive Vocal Resonance Certified`,
-        isPassing: true,
-        ladderStatus: '80%+ Passing Threshold • Ladder Certified',
+        pitchModulationScore: fallbackEngine.pitchModulationScore,
+        cadencePacingScore: fallbackEngine.cadencePacingScore,
+        emotionalComposureScore: fallbackEngine.emotionalComposureScore,
+        verbalSubstanceScore: fallbackEngine.verbalSubstanceScore,
+        exactGrade: fallbackEngine.exactGrade,
+        isPassing: isPass,
+        ladderStatus: fallbackEngine.ladderStatus,
         targetPosition: activeJob.roleName,
         positionQuestion: questionPrompt,
         trueToFactAnalysis: {
-          factualSubstanceScore: 94.8,
-          roleAlignmentScore: 96.5,
-          truthfulnessRating: 'Highly Factual & Grounded in Practical Execution',
-          evidenceAssessment: 'Candidate provided actionable containment steps without evasive statements or empty buzzwords.',
-          pinpointedImprovements: [
+          factualSubstanceScore: fallbackEngine.substanceScore,
+          roleAlignmentScore: fallbackEngine.overallScore,
+          truthfulnessRating: isPass ? 'Highly Factual & Grounded in Practical Execution' : 'Insufficient Operational Specificity',
+          evidenceAssessment: isPass 
+            ? 'Candidate provided actionable containment steps without evasive statements or empty buzzwords.'
+            : 'Candidate response lacked concrete containment protocols and required procedural specifics.',
+          pinpointedImprovements: (fallbackEngine.flaws && fallbackEngine.flaws.length > 0) ? fallbackEngine.flaws.map(f => ({
+            area: f.issueNamed,
+            observation: f.whyItFailsScenario || f.identifiedExcerpt,
+            recommendation: f.exemplarCorrection
+          })) : [
             {
               area: 'Consonant Transitions',
               observation: 'Slightly hurried phrase endings during initial sentence',
@@ -1000,21 +1196,27 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
           calculatedStrengths: [
             {
               strength: 'Empirical Accountability & Resonance',
-              evidence: `Directly acknowledged timeline variance with F0 pitch stability at ${pitchStability}% and strong HNR resonance (${Math.round(hnr * 10) / 10} dB).`
+              evidence: `F0 pitch stability recorded at ${pitchStability}% and resonance at ${Math.round(hnr * 10) / 10} dB.`
             }
           ]
         },
         acousticMetrics: {
           pitchStabilityPercent: pitchStability,
-          decibelSteadiness: report ? `Optimal Dynamic Range (${report.peakDb} dB to ${report.averageDb} dB)` : 'Optimal Dynamic Range (58 - 66 dB)',
+          decibelSteadiness: report ? `Dynamic Range (${report.peakDb} dB to ${report.averageDb} dB)` : 'Dynamic Range (58 - 66 dB)',
           speechPacingWpm: wpm,
           silenceHesitationRatioPercent: report?.silenceHesitationRatioPercent !== undefined ? report.silenceHesitationRatioPercent : 11.2,
           inflectionWarmthRating: report?.spectralWarmthRating || 'Conversational Fluency (Authentic Natural Delivery)'
         },
-        vocalToneFeedback: 'Even, diaphragmatically supported vocal delivery with measured inflection and complete absence of defensive pitch spiking.',
-        verbalResponseFeedback: 'Immediate containment protocol, empathetic de-escalation, and proactive transparency regarding next steps.',
-        whatNeedsImprovementToReach100: 'To achieve a 100% vocal score, slightly elongate final consonant pauses before transitions to convey even deeper unhurried authority.',
-        whatShouldHaveBeenDoneInstead: 'Elongate pause duration between problem identification and containment proposal.',
+        vocalToneFeedback: isPass
+          ? 'Even, diaphragmatically supported vocal delivery with measured inflection and complete absence of defensive pitch spiking.'
+          : 'Vocal inflection lacks sufficient operational assertion and definitive closure.',
+        verbalResponseFeedback: isPass
+          ? 'Immediate containment protocol, empathetic de-escalation, and proactive transparency regarding next steps.'
+          : 'Response lacks concrete containment steps, milestone verification, and definitive escalation paths.',
+        whatNeedsImprovementToReach100: fallbackEngine.flaws.length > 0
+          ? `Address identified deficiencies: ${fallbackEngine.flaws.map(f => f.issueNamed).join(' • ')}.`
+          : 'To achieve 100% mastery, substantiate claims with concrete metrics and eliminate filler hesitation.',
+        whatShouldHaveBeenDoneInstead: fallbackEngine.flaws[0]?.exemplarCorrection || 'Elongate pause duration between problem identification and containment proposal.',
         exemplarVocalDelivery: 'I take full accountability for this timeline variance. Here is our exact mitigation sequence...',
         keyStrengths: [
           'Steady pitch contour with complete absence of defensive tremor',
@@ -1197,31 +1399,91 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
         return;
       }
 
-      let stream: MediaStream;
+      let stream: MediaStream | null = null;
       try {
+        // Attempt unified high-fidelity video + audio capture
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-          audio: true
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         });
-      } catch {
+      } catch (primaryAvErr) {
+        console.warn('Primary A/V constraints failed, trying basic audio+video:', primaryAvErr);
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        } catch (basicAvErr) {
+          console.warn('Combined request rejected, requesting video and audio separately:', basicAvErr);
+          try {
+            const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            let audioStream: MediaStream | null = null;
+            try {
+              audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (micErr) {
+              console.warn('Scenario video microphone access rejected:', micErr);
+            }
+            const tracks = [...videoStream.getVideoTracks()];
+            if (audioStream && audioStream.getAudioTracks().length > 0) {
+              tracks.push(...audioStream.getAudioTracks());
+            }
+            stream = new MediaStream(tracks);
+          } catch (vOnlyErr) {
+            console.warn('Could not acquire video stream:', vOnlyErr);
+          }
+        }
+      }
+
+      if (!stream) {
+        throw new Error('Camera hardware could not be initialized');
+      }
+
+      if (stream.getAudioTracks().length === 0) {
+        setScenarioVideoNotice('Notice: Microphone could not be connected. Scenario video will be recorded without sound. Please check browser microphone permissions.');
+      } else {
+        // Setup live scenario audio level meter
+        try {
+          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioCtx) {
+            const ctx = new AudioCtx();
+            scenarioAudioContextRef.current = ctx;
+            if (ctx.state === 'suspended') {
+              ctx.resume().catch(() => {});
+            }
+            const source = ctx.createMediaStreamSource(stream);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            const updateMeter = () => {
+              if (!scenarioVideoRecorderRef.current || scenarioVideoRecorderRef.current.state !== 'recording') return;
+              analyser.getByteFrequencyData(dataArray);
+              let sum = 0;
+              for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+              const avg = sum / dataArray.length;
+              const norm = Math.min(100, Math.round((avg / 128) * 100));
+              setScenarioAudioLevel(norm);
+              scenarioAnimFrameRef.current = requestAnimationFrame(updateMeter);
+            };
+            updateMeter();
+          }
+        } catch (e) {
+          console.warn('Scenario audio meter note:', e);
         }
       }
 
       if (scenarioVideoPreviewRef.current) {
         scenarioVideoPreviewRef.current.srcObject = stream;
         scenarioVideoPreviewRef.current.muted = true;
+        scenarioVideoPreviewRef.current.playsInline = true;
         scenarioVideoPreviewRef.current.play().then(() => {
           if (scenarioVideoPreviewRef.current) {
             startLiveOpticalTracking(scenarioVideoPreviewRef.current);
           }
         }).catch(() => {});
       }
+
       scenarioVideoChunksRef.current = [];
-      const mr = new MediaRecorder(stream);
+      const preferredMime = getPreferredVideoMimeType();
+      const mr = new MediaRecorder(stream, preferredMime ? { mimeType: preferredMime } : undefined);
       scenarioVideoRecorderRef.current = mr;
 
       mr.ondataavailable = (e) => {
@@ -1230,7 +1492,18 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
 
       mr.onstop = async () => {
         stopLiveOpticalTracking();
-        const blob = new Blob(scenarioVideoChunksRef.current, { type: 'video/webm' });
+        if (scenarioAudioContextRef.current) {
+          try { scenarioAudioContextRef.current.close(); } catch {}
+          scenarioAudioContextRef.current = null;
+        }
+        if (scenarioAnimFrameRef.current) {
+          cancelAnimationFrame(scenarioAnimFrameRef.current);
+          scenarioAnimFrameRef.current = null;
+        }
+        setScenarioAudioLevel(0);
+
+        const actualType = preferredMime || mr.mimeType || scenarioVideoChunksRef.current[0]?.type || 'video/webm';
+        const blob = new Blob(scenarioVideoChunksRef.current, { type: actualType });
         scenarioBlobRef.current = blob;
         saveMediaBlob('active_pressureVideo', blob, 'pressureVideo', scenarioVideoSeconds).catch(() => {});
         const url = URL.createObjectURL(blob);
@@ -1286,6 +1559,15 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
       setIsScenarioVideoRecording(false);
       if (scenarioVideoTimerRef.current) clearInterval(scenarioVideoTimerRef.current);
     }
+    if (scenarioAudioContextRef.current) {
+      try { scenarioAudioContextRef.current.close(); } catch {}
+      scenarioAudioContextRef.current = null;
+    }
+    if (scenarioAnimFrameRef.current) {
+      cancelAnimationFrame(scenarioAnimFrameRef.current);
+      scenarioAnimFrameRef.current = null;
+    }
+    setScenarioAudioLevel(0);
   };
 
   const handleScenarioVideoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1383,17 +1665,32 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
       const fixation = opticalReport?.oculometrics.fixationRatioPercent || scenarioVideoOptical.fixationRatio || 95.4;
       const sway = opticalReport?.kinesicMovements.posturalSwayIndex || 9.5;
       const postureScore = Math.min(99, Math.round(100 - sway));
-      const overall = Math.min(99, Math.round((fixation * 0.4 + postureScore * 0.3 + 95 * 0.3) * 10) / 10);
+      const fallbackEngine = EvaluationLogicEngine.evaluate({
+        transcript: textToEvaluate,
+        transcriptText: textToEvaluate,
+        speechTempoWpm: 134,
+        jitterPercent: 1.12,
+        pitchStabilityPercent: 95.8,
+        fixationRatioPercent: Math.round(fixation),
+        postureSteadinessPercent: postureScore,
+        roleTitle: activeJob.roleName,
+        scenarioContext: questionPrompt,
+        attemptNumber: videoScenarioAttemptNumber,
+        maxChancesAllowed: 2
+      });
+
+      const overall = fallbackEngine.overallScore;
+      const isPass = fallbackEngine.isPassing;
 
       setVideoScoring({
         overallVideoScore: overall,
         bodyLanguageScore: postureScore,
-        responseToneScore: 94.6,
-        crisisResponseSubstanceScore: 95.2,
-        genuineResponseScore: 96.0,
-        exactGrade: `${overall}% • Executive Demeanor Certified`,
-        isPassing: true,
-        ladderStatus: '80%+ Passing Threshold • Ladder Certified',
+        responseToneScore: fallbackEngine.pitchModulationScore,
+        crisisResponseSubstanceScore: fallbackEngine.substanceScore,
+        genuineResponseScore: fallbackEngine.emotionalComposureScore,
+        exactGrade: fallbackEngine.exactGrade,
+        isPassing: isPass,
+        ladderStatus: fallbackEngine.ladderStatus,
         scenarioTitle: `High-Pressure Emergency Briefing • ${activeJob.roleName}`,
         scenarioPrompt: questionPrompt,
         scientificKinesics: {
@@ -1438,14 +1735,16 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
           gesturePoise: 'Controlled & Purposeful'
         },
         authenticityMetrics: {
-          genuineResponseIndexPercent: 96.0,
-          affectCongruenceRating: 'High Verbal-Emotional Harmony',
-          spontaneityLevel: 'Natural, Spontaneous & Thoughtful',
+          genuineResponseIndexPercent: fallbackEngine.emotionalComposureScore,
+          affectCongruenceRating: isPass ? 'High Verbal-Emotional Harmony' : 'Constrained Affect / Tension Detected',
+          spontaneityLevel: isPass ? 'Natural, Spontaneous & Thoughtful' : 'Hesitant & Guarded',
           vocalWarmthSteadiness: 'Consistent Unforced Pitch Resonance',
-          facialAuthenticityAudit: 'Absence of masked anxiety or forced pleasantness'
+          facialAuthenticityAudit: isPass ? 'Absence of masked anxiety or forced pleasantness' : 'Underlying tension or evasion detected'
         },
-        whatNeedsImprovementToReach100: 'To reach a flawless 100% video score, maintain continuous eye contact during the initial 3 seconds of greeting before referencing notes, and maintain open palm gestures at chest height.',
-        whatShouldHaveBeenDoneInstead: 'Anchor gaze directly into camera aperture for 95%+ of the speaking duration.',
+        whatNeedsImprovementToReach100: fallbackEngine.flaws.length > 0
+          ? `Remediate operational gaps: ${fallbackEngine.flaws.map(f => f.issueNamed).join(' • ')}.`
+          : 'To reach a flawless 100% video score, maintain continuous eye contact during the initial 3 seconds of greeting before referencing notes, and maintain open palm gestures at chest height.',
+        whatShouldHaveBeenDoneInstead: fallbackEngine.flaws[0]?.exemplarCorrection || 'Anchor gaze directly into camera aperture for 95%+ of the speaking duration and deliver 3-point containment.',
         exemplarCrisisResponse: 'I take full accountability for this timeline variance. Here is our exact mitigation sequence...',
         keyStrengths: [
           `Superb lens lock consistency (${Math.round(fixation)}% fixation ratio)`,
@@ -1457,8 +1756,12 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
           'Align collarbones to screen grid to lock posture equilibrium.'
         ],
         bodyLanguageFeedback: 'Remarkably steady posture and facial composure throughout the delivery.',
-        responseToneFeedback: 'Even, measured, and diplomatic vocal delivery with clear diction.',
-        crisisMitigationFeedback: 'Structured, proactive containment addressing the problem without defensive deflection.',
+        responseToneFeedback: isPass
+          ? 'Even, measured, and diplomatic vocal delivery with clear diction.'
+          : 'Vocal delivery requires greater executive assertion and decisive pace.',
+        crisisMitigationFeedback: isPass
+          ? 'Structured, proactive containment addressing the problem without defensive deflection.'
+          : 'Containment sequence lacked specific operational milestones and procedural ownership.',
         evaluatedAt: new Date().toISOString()
       });
     } finally {
@@ -1799,6 +2102,15 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
               className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer rounded"
             >
               View Summary
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteSavedDossier}
+              className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer rounded flex items-center gap-1.5"
+              title="Delete this candidate dossier from local vault"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+              <span>Delete</span>
             </button>
           </div>
         </div>
@@ -2179,7 +2491,24 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
 
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
+                  // Save current archetype projection
+                  if (archetypeProjection) {
+                    try {
+                      // Attempt to save the profile with the current archetype
+                      // Using a basic profile structure
+                      const profile: any = {
+                        id: candidateEmail || `cand_${Date.now()}`,
+                        name: candidateName,
+                        email: candidateEmail,
+                        archetypeProjection: archetypeProjection,
+                        status: 'in-progress'
+                      };
+                      await saveCandidateProfileToFirestore(profile);
+                    } catch (error) {
+                      console.error('Failed to save archetype:', error);
+                    }
+                  }
                   setCurrentStep('opening-interview');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
@@ -2363,6 +2692,14 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
               </div>
             )}
 
+            {/* Mic warning banner if microphone is not available */}
+            {micDetectedWarning && (
+              <div className="w-full bg-amber-500/10 border-t border-amber-500/30 px-4 py-2 flex items-center gap-2 text-xs font-mono text-amber-300">
+                <MicOff className="w-3.5 h-3.5 shrink-0" />
+                <span>{micDetectedWarning}</span>
+              </div>
+            )}
+
             {/* Recording Controls Footer inside Stage */}
             <div className="w-full bg-[#141414] p-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -2404,6 +2741,31 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
                 </button>
               </div>
 
+              {/* Live VU Audio Meter when recording */}
+              {isRecording && (
+                <div className="flex items-center gap-2.5 bg-black/60 border border-white/15 px-3 py-1.5 text-xs font-mono text-white/90">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[11px] text-white/70 uppercase">Mic Level:</span>
+                  </div>
+                  <div className="w-24 h-2 bg-white/10 rounded-full overflow-hidden flex items-center">
+                    <div
+                      className={`h-full transition-all duration-75 ${
+                        callingAudioLevel > 60
+                          ? 'bg-amber-400'
+                          : callingAudioLevel > 15
+                          ? 'bg-emerald-400'
+                          : 'bg-white/40'
+                      }`}
+                      style={{ width: `${Math.max(6, callingAudioLevel)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-emerald-400 font-bold min-w-[32px]">
+                    {callingAudioLevel > 10 ? `${callingAudioLevel}%` : 'Listening'}
+                  </span>
+                </div>
+              )}
+
               {recordedMediaUrl && (
                 <div className="flex items-center gap-2 text-emerald-400 font-mono text-xs">
                   <CheckCircle2 className="w-4 h-4" />
@@ -2435,7 +2797,7 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
               </div>
 
               {recordingMode === 'video' ? (
-                <video src={recordedMediaUrl} controls className="w-full max-h-[300px] bg-black border border-white/20" />
+                <video src={recordedMediaUrl} controls playsInline className="w-full max-h-[300px] bg-black border border-white/20" />
               ) : (
                 <audio src={recordedMediaUrl} controls className="w-full" />
               )}
@@ -3077,15 +3439,24 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
                       <span>Composure: {scenarioVideoOptical.postureSteadiness}%</span>
                     </div>
                     {isScenarioVideoRecording && (
-                      <div className="flex items-center gap-1 text-rose-400 font-bold uppercase tracking-wider pl-1 border-l border-white/20">
+                      <div className="flex items-center gap-2 text-rose-400 font-bold uppercase tracking-wider pl-1 border-l border-white/20">
                         <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
                         <span>Rec Active</span>
+                        <div className="flex items-center gap-1 pl-1 border-l border-white/20 text-white/90">
+                          <span className="text-[9px] text-white/60">MIC</span>
+                          <div className="w-12 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-400 transition-all duration-75"
+                              style={{ width: `${Math.max(10, scenarioAudioLevel)}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
                 </>
               ) : (
-                <video src={scenarioVideoUrl} controls className="w-full h-full object-contain" />
+                <video src={scenarioVideoUrl} controls playsInline className="w-full h-full object-contain" />
               )}
             </div>
 
@@ -3641,6 +4012,16 @@ export const CandidatePortal: React.FC<CandidatePortalProps> = ({
             >
               <RefreshCw className="w-4 h-4" />
               <span>Start New Assessment</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDeleteSavedDossier}
+              className="px-5 py-3 border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-mono text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer w-full sm:w-auto justify-center"
+              title="Permanently remove this candidate dossier"
+            >
+              <Trash2 className="w-4 h-4 text-rose-400" />
+              <span>Delete Dossier</span>
             </button>
 
             <button

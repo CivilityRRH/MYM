@@ -166,6 +166,32 @@ export interface VocalScoringResult {
   evaluatedAt: string;
 }
 
+export interface FacialComposureAndExperientialVeracity {
+  // Nerve, Stage-Fright & Physiological Tension Calibration (The Mentorship & Coach Engine)
+  nerveAndAnxietyCalibration: {
+    autonomicSteadinessScore: number; // 0.0 - 100.0%
+    stageFrightIndex: 'calm_ventral_equilibrium' | 'mild_anticipatory_excitement' | 'transient_performance_nerves' | 'acute_stage_fright';
+    stageFrightSummary: string; // Positive, validating framing of their physiological state
+    detectedTensionPoints: string[]; // Specific physical loci (e.g. "Brief ocular flutter at onset", "Shoulder micro-elevation under triage prompt")
+    targetedNerveCalmingProtocols: Array<{
+      technique: string; // e.g. "Cyclic Vagal Reset (Double Inhale / Extended Exhale)"
+      targetArea: string; // e.g. "Diaphragm & Vocal Shimmer Regulation"
+      protocol: string; // Exact action steps
+      neuroScienceRationale: string; // Downregulates sympathetic tone via vagus nerve stimulation
+    }>;
+  };
+  // Experiential Grounding & Narrative Reality (The Anti-Resume-Fraud Engine, framed positively)
+  experientialGroundingAudit: {
+    groundingScore: number; // 0.0 - 100.0% (High = rich, deeply lived experience)
+    experientialDepthTier: 'Deep Lived Operational Mastery' | 'Substantive Authentic Background' | 'Emerging Experiential Foundation' | 'High-Level Surface Summary';
+    autobiographicalDetailDensity: number; // 0.0 - 100.0% (Presence of specific situational constraints, tools, sequences)
+    cognitiveRetrievalCongruence: 'effortless_episodic_recall' | 'natural_deliberative_retrieval' | 'calculated_conceptual_synthesis';
+    affectiveVerbalSynchronyPercent: number; // % alignment of facial micro-expressions with spoken assertions
+    verifiedExperienceMarkers: string[]; // Positive demonstrations of authentic past work
+    depthEnhancementGuidance: string; // Guidance on how to showcase authentic track record with even greater impact
+  };
+}
+
 export interface VideoScoringResult {
   overallVideoScore: number; // 0.0 - 100.0
   bodyLanguageScore: number; // 0.0 - 100.0 (eye contact, posture, calm facial expressions, zero fidgeting)
@@ -296,6 +322,7 @@ export interface VideoScoringResult {
   currentChanceIndex?: number;
   microFlawPrecisionDiagnostic?: MicroFlawPrecisionDiagnostic;
   toxicHostilityAudit?: ToxicHostilityAudit;
+  facialComposureAndExperientialVeracity?: FacialComposureAndExperientialVeracity;
   keyStrengths: string[];
   coachingTipsForPerfection: string[];
   evaluatedAt: string;
@@ -407,6 +434,9 @@ export interface EvaluationCuesInput {
   fixationRatioPercent?: number;
   saccadeFrequencyPerMin?: number;
   gazeAversionPattern?: 'direct_anchored' | 'cognitive_gating_lateral' | 'nervous_downward_avoidance' | 'hyper_vigilant_scanning' | 'no_face_detected';
+  cognitiveVsNervousAnalysis?: string;
+  blinkRatePerMin?: number;
+  blinkStressClassification?: 'relaxed_executive' | 'mild_alertness' | 'sympathetic_stress_spikes';
   posturalSwayIndex?: number;
   postureSteadinessPercent?: number;
   adaptorFrequency?: string;
@@ -414,6 +444,7 @@ export interface EvaluationCuesInput {
   illustratorEffectiveness?: string;
   facialComposureRating?: string;
   microExpressionStatus?: string;
+  nervousSystemState?: 'regulated_ventral' | 'mild_sympathetic_arousal' | 'acute_performance_anxiety' | 'dorsal_tonic_freeze' | 'unverified';
 
   // Semantic & Contextual Cues
   transcript: string;
@@ -532,6 +563,13 @@ export interface EvaluationLogicResult {
   retryRecommendation?: RetryRecommendation;
   microFlawPrecisionDiagnostic?: MicroFlawPrecisionDiagnostic;
   toxicHostilityAudit?: ToxicHostilityAudit;
+  pitchModulationScore?: number;
+  emotionalComposureScore?: number;
+  cadencePacingScore?: number;
+  verbalSubstanceScore?: number;
+  substanceScore?: number;
+  flaws?: MicroFlawItem[];
+  facialComposureAndExperientialVeracity?: FacialComposureAndExperientialVeracity;
   keyStrengths: string[];
   targetedCoachingRecommendations: string[];
   whatShouldHaveBeenDoneInstead: string;
